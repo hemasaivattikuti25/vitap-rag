@@ -1,34 +1,25 @@
 """
-Retriever using local sentence-transformers embeddings.
-No API key needed. No quota. Runs 100% locally on the server.
-Falls back to Gemini embeddings if sentence-transformers not available.
+Retriever using FastEmbed (ONNX Runtime) for lightweight embeddings.
+No PyTorch/torch dependency, fits easily within Render's 512MB RAM limit.
 """
 
 import os
 from typing import List
-
 from qdrant_client import QdrantClient
 
-# ── Local embeddings (primary — free, no API) ─────────────────
-try:
-    from sentence_transformers import SentenceTransformer
-    _HAS_ST = True
-except ImportError:
-    _HAS_ST = False
-
-# ── Qdrant config ──────────────────────────────────────────────
+# Qdrant config
 QDRANT_URL     = os.getenv("QDRANT_URL", "local")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
 
-# Embedding dimension
-# sentence-transformers/all-MiniLM-L6-v2 → 384
-ST_MODEL_NAME = "all-MiniLM-L6-v2"
-ST_DIMENSION  = 384
+# Model config
+# fastembed has native support for sentence-transformers/all-MiniLM-L6-v2 (dim=384)
+MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+DEFAULT_DIMENSION = 384
 
 
 class QdrantRetriever:
     def __init__(self):
-        # ── Connect to Qdrant ──────────────────────────────────
+        # 1. Connect to Qdrant
         if QDRANT_URL and QDRANT_URL != "local" and QDRANT_URL.startswith("http"):
             # Cloud Qdrant
             self.client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None)
@@ -42,16 +33,16 @@ class QdrantRetriever:
 
         self.collection_name = "campus_os"
 
-        # ── Load embedding model ───────────────────────────────
-        self._st_model = None
+        # 2. Load embedding model using FastEmbed
+        try:
+            from fastembed import TextEmbedding
+            # This loads the ONNX model and runs on ONNX Runtime (CPU)
+            self._model = TextEmbedding(model_name=MODEL_NAME)
+            print(f"[retriever] FastEmbed loaded model: {MODEL_NAME}")
+        except Exception as e:
+            print(f"[retriever] ERROR loading FastEmbed: {e}")
+            self._model = None
 
-        if _HAS_ST:
-            self._st_model = SentenceTransformer(ST_MODEL_NAME, device="cpu")
-            print("[retriever] Embeddings ready (local, no API)")
-        else:
-            print("[retriever] WARNING: No embedding model available!")
-
-        # Detect which embedding dimension Qdrant index was built with
         self._embedding_dim = self._detect_collection_dim()
 
     def _detect_collection_dim(self) -> int:
@@ -63,15 +54,16 @@ class QdrantRetriever:
             return dim
         except Exception:
             # Collection may not exist yet
-            return ST_DIMENSION
+            return DEFAULT_DIMENSION
 
     def _embed(self, text: str) -> List[float]:
-        """Generate embedding using best available method."""
-        if self._st_model:
-            vec = self._st_model.encode(text, normalize_embeddings=True)
-            return vec.tolist()
-
-        raise RuntimeError("No embedding model available. Install sentence-transformers.")
+        """Generate embedding using FastEmbed."""
+        if not self._model:
+            raise RuntimeError("FastEmbed model is not initialized.")
+        # self._model.embed returns a generator of numpy arrays.
+        # We pass a list [text] and extract the first element.
+        embeddings = list(self._model.embed([text]))
+        return embeddings[0].tolist()
 
     def retrieve(self, query: str, top_k: int = 4) -> List[dict]:
         """Retrieve top-k relevant chunks from Qdrant for the query."""
@@ -103,5 +95,5 @@ class QdrantRetriever:
             ]
 
         except Exception as e:
-            print(f"[retriever] Error: {e}")
+            print(f"[retriever] Error during retrieval: {e}")
             return []
