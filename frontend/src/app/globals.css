@@ -13,7 +13,7 @@
     position: fixed !important;
     left: -220px;
     top: 0;
-    height: 100vh;
+    height: 100dvh;
     z-index: 100;
     transition: left 0.25s ease-in-out;
     box-shadow: 5px 0 25px rgba(0,0,0,0.5);
@@ -25,7 +25,7 @@
     position: fixed !important;
     right: -300px;
     top: 0;
-    height: 100vh;
+    height: 100dvh;
     z-index: 100;
     transition: right 0.25s ease-in-out;
     box-shadow: -5px 0 25px rgba(0,0,0,0.5);

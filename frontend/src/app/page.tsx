@@ -53,6 +53,7 @@ const API_URL =
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [started, setStarted] = useState(false);
@@ -80,6 +81,12 @@ export default function Home() {
     };
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
     // Show Install option on iOS/Android browsers (as a fallback guide)
     if (typeof window !== "undefined" && typeof navigator !== "undefined") {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
@@ -92,6 +99,7 @@ export default function Home() {
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -371,11 +379,19 @@ export default function Home() {
         )}
 
         {!started ? (
-          <div style={s.welcome}>
+          <div style={isMobile ? s.welcomeMobile : s.welcome}>
             <div style={s.welcomeGlow} />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="vitap-UniOs Logo" width="80" height="80" style={{ borderRadius: 16, marginBottom: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }} />
-            <h1 style={s.welcomeTitle}>
+            
+            {/* Premium Banner Card */}
+            <div style={isMobile ? s.bannerCardMobile : s.bannerCard}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/banner.png" alt="vitap-UniOs Banner" style={s.bannerImg} />
+              <div style={s.bannerOverlay} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="vitap-UniOs Logo" style={isMobile ? s.bannerLogoMobile : s.bannerLogo} />
+            </div>
+
+            <h1 style={isMobile ? s.welcomeTitleMobile : s.welcomeTitle}>
               Hello, I&apos;m <span style={s.accent}>vitap-UniOs</span>
             </h1>
             <p style={s.welcomeSub}>Ask me anything about VIT-AP University</p>
@@ -388,7 +404,7 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div style={s.chatArea}>
+          <div style={isMobile ? s.chatAreaMobile : s.chatArea}>
             {messages.map((msg, idx) => (
               <div key={idx} style={msg.role === "user" ? s.userRow : s.assistantRow}>
                 {msg.role === "assistant" && (
@@ -400,10 +416,10 @@ export default function Home() {
                 <div
                   style={
                     msg.role === "user"
-                      ? s.userBubble
+                      ? (isMobile ? s.userBubbleMobile : s.userBubble)
                       : msg.error
                         ? s.errorBubble
-                        : s.assistantBubble
+                        : (isMobile ? s.assistantBubbleMobile : s.assistantBubble)
                   }
                 >
                   <p style={s.msgText}>{msg.content}</p>
@@ -444,7 +460,7 @@ export default function Home() {
         )}
 
         {/* Input bar */}
-        <div style={s.inputWrapper}>
+        <div style={isMobile ? s.inputWrapperMobile : s.inputWrapper}>
           <div style={s.inputBox}>
             <textarea
               ref={textareaRef}
@@ -453,7 +469,7 @@ export default function Home() {
               onKeyDown={handleKey}
               placeholder="Ask anything about VIT-AP..."
               rows={1}
-              style={s.textarea}
+              style={{ ...s.textarea, fontSize: isMobile ? 16 : 14 }}
               disabled={isLoading}
             />
             <button
@@ -586,7 +602,7 @@ export default function Home() {
 const s: Record<string, React.CSSProperties> = {
   root: {
     display: "flex",
-    height: "100vh",
+    height: "100dvh",
     width: "100vw",
     background: "#0a0a0a",
     overflow: "hidden",
@@ -695,7 +711,7 @@ const s: Record<string, React.CSSProperties> = {
     flex: 1,
     display: "flex",
     flexDirection: "column",
-    height: "100vh",
+    height: "100dvh",
     overflow: "hidden",
     position: "relative",
     borderRight: "1px solid #1a1a1a",
@@ -711,6 +727,92 @@ const s: Record<string, React.CSSProperties> = {
     padding: "0 32px",
     gap: 14,
     position: "relative",
+    width: "100%",
+  },
+  welcomeMobile: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "16px 20px",
+    gap: 12,
+    position: "relative",
+    overflowY: "auto",
+    width: "100%",
+  },
+  welcomeTitleMobile: {
+    fontSize: 24,
+    fontWeight: 600,
+    color: "#e0e0e0",
+    margin: 0,
+    textAlign: "center",
+    letterSpacing: "-0.5px",
+    position: "relative",
+  },
+  bannerCard: {
+    position: "relative",
+    width: "100%",
+    maxWidth: 440,
+    height: 180,
+    borderRadius: 16,
+    overflow: "hidden",
+    border: "1px solid #1f1f23",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+    marginBottom: 8,
+    display: "flex",
+    alignItems: "flex-end",
+    padding: 16,
+  },
+  bannerCardMobile: {
+    position: "relative",
+    width: "100%",
+    maxWidth: 340,
+    height: 130,
+    borderRadius: 14,
+    overflow: "hidden",
+    border: "1px solid #1f1f23",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+    marginBottom: 4,
+    display: "flex",
+    alignItems: "flex-end",
+    padding: 12,
+  },
+  bannerImg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  bannerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background: "linear-gradient(to top, rgba(10,10,10,0.95) 0%, rgba(10,10,10,0.3) 100%)",
+  },
+  bannerLogo: {
+    position: "relative",
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    border: "2px solid #1f1f23",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+    objectFit: "cover",
+    zIndex: 2,
+  },
+  bannerLogoMobile: {
+    position: "relative",
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    border: "2px solid #1f1f23",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+    objectFit: "cover",
+    zIndex: 2,
   },
   welcomeGlow: {
     position: "absolute",
@@ -778,6 +880,17 @@ const s: Record<string, React.CSSProperties> = {
     scrollbarWidth: "thin",
     scrollbarColor: "#1e1e1e transparent",
   },
+  chatAreaMobile: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "16px 12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+    width: "100%",
+    scrollbarWidth: "thin",
+    scrollbarColor: "#1e1e1e transparent",
+  },
   userRow: { display: "flex", justifyContent: "flex-end" },
   assistantRow: { display: "flex", gap: 10, alignItems: "flex-start" },
   avatar: {
@@ -799,10 +912,24 @@ const s: Record<string, React.CSSProperties> = {
     padding: "10px 14px",
     maxWidth: "72%",
   },
+  userBubbleMobile: {
+    background: "#181818",
+    border: "1px solid #242424",
+    borderRadius: "16px 16px 4px 16px",
+    padding: "8px 12px",
+    maxWidth: "85%",
+    fontSize: 13.5,
+  },
   assistantBubble: {
     background: "transparent",
     maxWidth: "88%",
     flex: 1,
+  },
+  assistantBubbleMobile: {
+    background: "transparent",
+    maxWidth: "100%",
+    flex: 1,
+    fontSize: 13.5,
   },
   errorBubble: {
     background: "#150f0f",
@@ -860,6 +987,16 @@ const s: Record<string, React.CSSProperties> = {
     gap: 6,
     borderTop: "1px solid #161616",
     background: "#0a0a0a",
+  },
+  inputWrapperMobile: {
+    padding: "8px 12px 10px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 4,
+    borderTop: "1px solid #161616",
+    background: "#0a0a0a",
+    width: "100%",
   },
   inputBox: {
     display: "flex",
