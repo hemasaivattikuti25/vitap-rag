@@ -65,6 +65,8 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [feedCategories, setFeedCategories] = useState<string[]>(["All"]);
   const [feedMeta, setFeedMeta] = useState<{ last_updated?: string; total?: number } | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileFeedOpen, setMobileFeedOpen] = useState(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -215,11 +217,19 @@ export default function Home() {
   return (
     <div style={s.root}>
       {/* ── Sidebar ── */}
-      <aside style={s.sidebar}>
+      <aside className={`desktop-sidebar ${mobileSidebarOpen ? "open" : ""}`} style={s.sidebar}>
         <div style={s.logo}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="CampusOS Logo" width="28" height="28" style={{ borderRadius: 6, objectFit: "cover" }} />
           <span style={s.logoText}>CampusOS</span>
+          <button
+            className="mobile-close-btn"
+            onClick={() => setMobileSidebarOpen(false)}
+            style={s.drawerCloseBtn}
+            aria-label="Close Sidebar"
+          >
+            ✕
+          </button>
         </div>
 
         <button
@@ -255,6 +265,50 @@ export default function Home() {
 
       {/* ── Main Chat Area ── */}
       <main style={s.main}>
+        {/* Mobile Header */}
+        <header className="mobile-header" style={s.mobileHeader}>
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            style={s.mobileHeaderBtn}
+            aria-label="Open Menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+          
+          <div style={s.mobileHeaderTitle}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="CampusOS Logo" width="22" height="22" style={{ borderRadius: 5 }} />
+            <span>CampusOS</span>
+          </div>
+          
+          <button
+            onClick={() => setMobileFeedOpen(true)}
+            style={s.mobileHeaderBtn}
+            aria-label="Open Feed"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </header>
+
+        {mobileSidebarOpen && (
+          <div
+            className="overlay"
+            onClick={() => setMobileSidebarOpen(false)}
+            style={s.backdrop}
+          />
+        )}
+        {mobileFeedOpen && (
+          <div
+            className="overlay"
+            onClick={() => setMobileFeedOpen(false)}
+            style={s.backdrop}
+          />
+        )}
+
         {!started ? (
           <div style={s.welcome}>
             <div style={s.welcomeGlow} />
@@ -361,20 +415,30 @@ export default function Home() {
       </main>
 
       {/* ── Feed Panel (Right) ── */}
-      <aside style={s.feedPanel}>
+      <aside className={`desktop-feed ${mobileFeedOpen ? "open" : ""}`} style={s.feedPanel}>
         {/* Feed header */}
         <div style={s.feedHeader}>
           <div style={s.feedHeaderTop}>
             <span style={s.feedTitle}>Campus Feed</span>
-            <button
-              style={s.refreshBtn}
-              onClick={() => loadFeed(activeCategory)}
-              title="Refresh feed"
-            >
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <path d="M11 6.5A4.5 4.5 0 1 1 6.5 2a4.5 4.5 0 0 1 3.18 1.32M9.68 1v2.32H12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <button
+                style={s.refreshBtn}
+                onClick={() => loadFeed(activeCategory)}
+                title="Refresh feed"
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M11 6.5A4.5 4.5 0 1 1 6.5 2a4.5 4.5 0 0 1 3.18 1.32M9.68 1v2.32H12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
+                className="mobile-close-btn"
+                onClick={() => setMobileFeedOpen(false)}
+                style={s.drawerCloseBtn}
+                aria-label="Close Feed"
+              >
+                ✕
+              </button>
+            </div>
           </div>
           {feedMeta?.last_updated && (
             <div style={s.feedLastUpdated}>
@@ -455,6 +519,44 @@ export default function Home() {
       </aside>
 
       <style>{`
+        .mobile-close-btn { display: none; }
+
+        @media (max-width: 768px) {
+          .desktop-sidebar {
+            position: fixed !important;
+            left: -220px;
+            top: 0;
+            height: 100vh;
+            z-index: 100;
+            transition: left 0.25s ease-in-out;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+          }
+          .desktop-sidebar.open {
+            left: 0 !important;
+          }
+          .desktop-feed {
+            position: fixed !important;
+            right: -300px;
+            top: 0;
+            height: 100vh;
+            z-index: 100;
+            transition: right 0.25s ease-in-out;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+          }
+          .desktop-feed.open {
+            right: 0 !important;
+          }
+          .mobile-header {
+            display: flex !important;
+          }
+          .mobile-close-btn {
+            display: block !important;
+          }
+          .overlay {
+            display: block !important;
+          }
+        }
+
         @keyframes bounce {
           0%, 100% { transform: translateY(0); opacity: 0.4; }
           50% { transform: translateY(-4px); opacity: 1; }
@@ -947,5 +1049,54 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 11,
     color: "#444",
     lineHeight: 1.5,
+  },
+  mobileHeader: {
+    display: "none",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "10px 16px",
+    background: "#0f0f0f",
+    borderBottom: "1px solid #1a1a1a",
+    height: 50,
+    width: "100%",
+    flexShrink: 0,
+  },
+  mobileHeaderBtn: {
+    background: "transparent",
+    border: "none",
+    color: "#ccc",
+    cursor: "pointer",
+    padding: 6,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mobileHeaderTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#fff",
+  },
+  backdrop: {
+    display: "none",
+    position: "fixed",
+    left: 0,
+    top: 0,
+    width: "100vw",
+    height: "100vh",
+    background: "rgba(0,0,0,0.6)",
+    zIndex: 90,
+  },
+  drawerCloseBtn: {
+    display: "none",
+    background: "transparent",
+    border: "none",
+    color: "#555",
+    cursor: "pointer",
+    fontSize: 14,
+    padding: 4,
+    marginLeft: "auto",
   },
 };

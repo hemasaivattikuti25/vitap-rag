@@ -4,6 +4,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "CampusOS — VIT-AP Assistant",
   description: "Your intelligent campus assistant for VIT-AP University",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
