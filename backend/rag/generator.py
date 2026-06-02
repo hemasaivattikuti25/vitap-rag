@@ -6,6 +6,7 @@ No Gemini dependency.
 
 import os
 import json
+import asyncio
 from typing import Tuple, List, Optional
 
 from rag.retriever import QdrantRetriever
@@ -107,14 +108,6 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
         context_section = identity_context
         is_general = True
     else:
-        # 2. Retrieve local docs from Qdrant
-        docs = retriever.retrieve(query, top_k=5)
-        max_score = max([d["score"] for d in docs]) if docs else 0.0
-        print(f"[generator] Query: '{query[:50]}' | Local Qdrant max score: {max_score:.4f}")
-        
-        # Keep only docs that are reasonably relevant (score >= 0.30) to prevent mixing irrelevant facts
-        filtered_docs = [d for d in docs if d["score"] >= 0.30]
-        
         # Determine query classification
         is_general = check_is_general(query)
         print(f"[generator] Query classified as is_general = {is_general}")
@@ -123,70 +116,55 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
     context_section = ""
 
     if not is_identity:
-        # If not a greeting/math/code and local score is low, trigger Web Search fallback
-        if not is_general and max_score < 0.32:
-            print(f"[generator] Low local score ({max_score:.4f} < 0.32). Triggering Web Search Fallback for: '{query[:50]}'")
-            web_docs = await web_search(query)
-            if web_docs:
-                context_text = "\n\n".join(
-                    f"Source: {d['source_url']}\nContent: {d['content']}" for d in web_docs
-                )
-                context_section = f"Use the following web search results to answer accurately:\n\n{context_text}"
-                citations = [d["source_url"] for d in web_docs]
-            else:
-                # Web search failed -> Use filtered local docs if they are reasonably relevant
-                if filtered_docs:
-                    print(f"[generator] Web search failed. Falling back to {len(filtered_docs)} filtered local docs (max score: {max_score:.4f})")
-                    official_info = []
-                    student_opinions = []
-                    for d in filtered_docs:
-                        if d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", ""):
-                            student_opinions.append(d)
-                        else:
-                            official_info.append(d)
-
-                    citations = list(set(d["source_url"] for d in filtered_docs if d.get("source_url")))
-
-                    context_parts = []
-                    if official_info:
-                        off_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in official_info)
-                        context_parts.append(f"Official University Information:\n{off_text}")
-                    if student_opinions:
-                        op_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in student_opinions)
-                        context_parts.append(f"Student Opinions:\n{op_text}")
-                        has_opinions = True
-
-                    context_section = "\n\n".join(context_parts)
-                else:
-                    print(f"[generator] Web search failed and no relevant local docs found. Falling back to general knowledge.")
-                    context_section = "Use your general knowledge about VIT-AP to answer. Be helpful, clean, and polite."
-                    citations = []
-                    is_general = True  # Bypasses strict bullet formatting to avoid empty sections
+        if is_general:
+            context_section = "Use your general knowledge to answer directly."
         else:
-            # Use local Qdrant docs (high score)
-            if filtered_docs:
+            # Run local Qdrant retrieval and Web Search in parallel using asyncio
+            print(f"[generator] Running parallel Local Qdrant and Web Search for: '{query[:50]}'")
+            
+            local_task = asyncio.to_thread(retriever.retrieve, query, 5)
+            web_task = web_search(query)
+            
+            local_docs, web_docs = await asyncio.gather(local_task, web_task)
+            
+            context_parts = []
+            
+            # 1. Add Web Search results (highly prioritized for real-time accurate information)
+            if web_docs:
+                web_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in web_docs)
+                context_parts.append(f"Web Search Results:\n{web_text}")
+                citations.extend(d["source_url"] for d in web_docs)
+                
+            # 2. Add high-quality local Qdrant documents (score >= 0.32)
+            filtered_local = [d for d in local_docs if d["score"] >= 0.32]
+            if filtered_local:
                 official_info = []
                 student_opinions = []
-                for d in filtered_docs:
+                for d in filtered_local:
                     if d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", ""):
                         student_opinions.append(d)
                     else:
                         official_info.append(d)
-
-                citations = list(set(d["source_url"] for d in filtered_docs if d.get("source_url")))
-
-                context_parts = []
+                        
                 if official_info:
                     off_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in official_info)
-                    context_parts.append(f"Official University Information:\n{off_text}")
+                    context_parts.append(f"Official Campus Documents:\n{off_text}")
                 if student_opinions:
                     op_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in student_opinions)
-                    context_parts.append(f"Student Opinions (Reddit, Instagram, Google reviews):\n{op_text}")
+                    context_parts.append(f"Student Opinions & Reviews:\n{op_text}")
                     has_opinions = True
-
+                    
+                citations.extend(d["source_url"] for d in filtered_local if d.get("source_url"))
+                
+            # Remove duplicate citations
+            citations = list(set(citations))
+            
+            if context_parts:
                 context_section = "\n\n".join(context_parts)
             else:
-                context_section = "Use your general knowledge to answer."
+                print("[generator] Both Web Search and Local Qdrant returned 0 relevant results. Falling back to general knowledge.")
+                context_section = "Use your general knowledge about VIT-AP to answer. Be helpful, clean, and polite."
+                is_general = True
 
     # Build dynamic prompt messages
     messages = []
