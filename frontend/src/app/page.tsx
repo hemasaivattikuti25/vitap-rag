@@ -326,8 +326,9 @@ export default function Home() {
             </button>
           )}
           <div style={s.sidebarBadge}>Powered by Groq + Qdrant</div>
-          <div style={{ fontSize: 9, color: "#444", textAlign: "center", paddingTop: 4, letterSpacing: "0.2px" }}>
-            Developed by Hemasai Vattikuti
+          <div style={s.sidebarDeveloperSection}>
+            <span style={s.sidebarDevLabel}>Developed by</span>
+            <span style={s.sidebarDevName}>Hemasai Vattikuti</span>
           </div>
         </div>
       </aside>
@@ -406,6 +407,12 @@ export default function Home() {
                   {q}
                 </button>
               ))}
+            </div>
+
+            {/* Premium Watermark */}
+            <div style={s.watermark}>
+              <span style={s.watermarkLabel}>Developed by</span>
+              <span style={s.watermarkName}>Hemasai Vattikuti</span>
             </div>
           </div>
         ) : (
@@ -693,6 +700,31 @@ const s: Record<string, React.CSSProperties> = {
     padding: "8px 4px",
     borderTop: "1px solid #1a1a1a",
   },
+  sidebarDeveloperSection: {
+    borderTop: "1px solid #141414",
+    paddingTop: 12,
+    marginTop: 8,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 3,
+  },
+  sidebarDevLabel: {
+    fontSize: 8,
+    color: "#3f3f46",
+    textTransform: "uppercase" as const,
+    letterSpacing: "1px",
+    fontWeight: 500,
+  },
+  sidebarDevName: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: "#71717a",
+    background: "linear-gradient(135deg, #71717a 0%, #a1a1aa 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    letterSpacing: "0.2px",
+  },
   installBtn: {
     display: "flex",
     alignItems: "center",
@@ -775,11 +807,11 @@ const s: Record<string, React.CSSProperties> = {
     position: "relative",
   },
   accent: {
-    color: "#ffffff",
-    fontWeight: 700,
-    background: "linear-gradient(135deg, #fff 0%, #a5b4fc 100%)",
+    fontWeight: 800,
+    background: "linear-gradient(135deg, #818cf8 0%, #c084fc 100%)",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
+    letterSpacing: "-0.5px",
   },
   welcomeSub: {
     fontSize: 15,
@@ -806,6 +838,30 @@ const s: Record<string, React.CSSProperties> = {
     padding: "7px 14px",
     cursor: "pointer",
     transition: "all 0.15s",
+  },
+  watermark: {
+    marginTop: 28,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 4,
+    opacity: 0.7,
+  },
+  watermarkLabel: {
+    fontSize: 9,
+    color: "#3f3f46",
+    textTransform: "uppercase",
+    letterSpacing: "1.5px",
+    fontWeight: 500,
+  },
+  watermarkName: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: "#71717a",
+    background: "linear-gradient(135deg, #71717a 0%, #a1a1aa 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    letterSpacing: "0.5px",
   },
 
   /* Chat */

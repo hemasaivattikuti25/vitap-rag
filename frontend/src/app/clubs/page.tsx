@@ -312,6 +312,11 @@ export default function ClubsPage() {
           })}
         </div>
       )}
+      {/* Developer Credit */}
+      <div style={{ marginTop: 48, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, opacity: 0.6, paddingBottom: 24 }}>
+        <span style={{ fontSize: 8, color: "#3f3f46", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 500 }}>Developed by</span>
+        <span style={{ fontSize: 10, fontWeight: 600, color: "#71717a", background: "linear-gradient(135deg, #71717a 0%, #a1a1aa 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", letterSpacing: "0.2px" }}>Hemasai Vattikuti</span>
+      </div>
     </main>
   );
 }
