@@ -129,7 +129,9 @@ export default function Home() {
     setFeedLoading(true);
     try {
       const cat = category === "All" ? "all" : category;
-      const res = await fetch(`${API_URL}/api/feed?category=${cat}&limit=40`);
+      const res = await fetch(`${API_URL}/api/feed?category=${cat}&limit=40&t=${Date.now()}`, {
+        cache: "no-store",
+      });
       if (res.ok) {
         const data = await res.json();
         setFeedItems(data.items || []);

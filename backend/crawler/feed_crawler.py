@@ -67,18 +67,23 @@ async def _scrape_vitap_page(client: httpx.AsyncClient, url: str, default_cat: s
 
         for el in candidates[:15]:
             # Find the best heading
-            heading = el.find(["h1", "h2", "h3", "h4", "h5", "a"])
+            heading = el.find(["h1", "h2", "h3", "h4", "h5"])
+            if not heading:
+                heading = el.find("a")
             if not heading:
                 continue
             title = heading.get_text(strip=True)
-            if len(title) < 10 or len(title) > 200:
+            if not title or len(title) < 8 or len(title) > 200 or any(k in title.lower() for k in ["read more", "click here", "top results", "view details", "back to top"]):
                 continue
 
             # Find link
+            import urllib.parse
             link_el = el.find("a", href=True)
-            href = link_el["href"] if link_el else url
-            if href.startswith("/"):
-                href = "https://vitap.ac.in" + href
+            href = link_el["href"] if link_el else ""
+            if href:
+                href = urllib.parse.urljoin(url, href)
+            else:
+                href = url
 
             # Find description snippet
             desc_el = el.find("p")
@@ -115,7 +120,7 @@ async def _ddg_news_search(client: httpx.AsyncClient, query: str, category: str)
             return []
 
         soup = BeautifulSoup(resp.text, "html.parser")
-        for div in soup.find_all("div", class_="result__body")[:6]:
+        for div in soup.find_all("div", class_="result__body")[:12]:
             title_el = div.find("a", class_="result__a") or div.find("a", class_="result__url")
             snippet_el = div.find("a", class_="result__snippet")
 
@@ -123,15 +128,24 @@ async def _ddg_news_search(client: httpx.AsyncClient, query: str, category: str)
                 continue
 
             title = title_el.get_text(strip=True)
-            if len(title) < 10:
+            if len(title) < 10 or any(k in title.lower() for k in ["duckduckgo", "unsupported browser"]):
                 continue
 
             href = title_el.get("href", "")
+            
+            # Exclude ad links and DDG internal/nav links
+            if "y.js" in href or "ad_domain" in href or "ad_provider" in href or "doubleclick" in href or "googleadservices" in href:
+                continue
+            if "duckduckgo.com" in href and "uddg=" not in href:
+                continue
+
             import urllib.parse
             if "uddg=" in href:
                 parsed = urllib.parse.urlparse(href)
                 qs = urllib.parse.parse_qs(parsed.query)
                 href = qs.get("uddg", [href])[0]
+            
+            href = urllib.parse.unquote(href)
 
             snippet = snippet_el.get_text(strip=True)[:200] if snippet_el else ""
             cat = _guess_category_from_text(title + " " + snippet)
@@ -193,25 +207,25 @@ CURATED_ITEMS = [
         "title": "VIT-AP University — Official Clubs Portal",
         "description": "Explore 70+ clubs across technical, cultural, and sports domains. Find your community at VIT-AP.",
         "category": "Club",
-        "source_url": "https://vitap.ac.in/clubs",
+        "source_url": "https://vitap.ac.in/clubs-and-chapters/",
         "date_str": "",
         "source": "curated",
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     },
     {
-        "title": "VIT-AP Placements 2024-25 — Latest Updates",
-        "description": "Top companies visiting VIT-AP this season. Check placement news and package updates.",
+        "title": "VIT-AP Placements — Latest CDC Updates",
+        "description": "Top companies visiting VIT-AP this season. Check placement news, statistics, and recruitment updates.",
         "category": "Placement",
-        "source_url": "https://vitap.ac.in/placements",
+        "source_url": "https://vitap.ac.in/cdc",
         "date_str": "",
         "source": "curated",
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     },
     {
         "title": "Research Opportunities at VIT-AP",
-        "description": "Faculty-led research projects, internships, and publication opportunities for students.",
+        "description": "Faculty-led research projects, sporic activities, internships, and publication opportunities for students.",
         "category": "Research",
-        "source_url": "https://vitap.ac.in/research",
+        "source_url": "https://vitap.ac.in/academic-research/",
         "date_str": "",
         "source": "curated",
         "fetched_at": datetime.now(timezone.utc).isoformat(),
@@ -220,7 +234,7 @@ CURATED_ITEMS = [
         "title": "VIT-AP International Relations — Exchange Programs",
         "description": "Semester Abroad Program (SAP) and International Transfer Program (ITP) applications open.",
         "category": "Opportunity",
-        "source_url": "https://vitap.ac.in/international-relations",
+        "source_url": "https://vitap.ac.in/international-relations/",
         "date_str": "",
         "source": "curated",
         "fetched_at": datetime.now(timezone.utc).isoformat(),
@@ -229,7 +243,7 @@ CURATED_ITEMS = [
         "title": "VIT-AP Academic Calendar 2025",
         "description": "Key dates: exam schedules, holiday list, registration deadlines, and semester timeline.",
         "category": "News",
-        "source_url": "https://vitap.ac.in/academic-calendar",
+        "source_url": "https://vitap.ac.in/academiccalender/",
         "date_str": "",
         "source": "curated",
         "fetched_at": datetime.now(timezone.utc).isoformat(),
@@ -238,7 +252,7 @@ CURATED_ITEMS = [
         "title": "SCOPE — School of Computer Science & Engineering",
         "description": "Courses, faculty profiles, labs, and events for CSE, AI, and related branches.",
         "category": "News",
-        "source_url": "https://vitap.ac.in/scope",
+        "source_url": "https://vitap.ac.in/allschools/",
         "date_str": "",
         "source": "curated",
         "fetched_at": datetime.now(timezone.utc).isoformat(),
@@ -247,7 +261,7 @@ CURATED_ITEMS = [
         "title": "VIT-AP Scholarships — Apply Now",
         "description": "Merit and need-based scholarships available for eligible students. Check eligibility and apply.",
         "category": "Admission",
-        "source_url": "https://vitap.ac.in/scholarships",
+        "source_url": "https://vitap.ac.in/fees-and-scholarships/",
         "date_str": "",
         "source": "curated",
         "fetched_at": datetime.now(timezone.utc).isoformat(),

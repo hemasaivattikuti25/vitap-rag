@@ -25,15 +25,25 @@ app.include_router(router, prefix="/api")
 
 @app.on_event("startup")
 async def startup_event():
-    """Kick off a background feed refresh on startup (non-blocking)."""
+    """Kick off a background feed refresh on startup and run it periodically."""
     async def _init_feed():
         # Wait 3s for the server to fully start before crawling
         await asyncio.sleep(3)
         from db.feed_store import feed_store
-        await feed_store._refresh()
+        
+        while True:
+            try:
+                print("[main] Starting periodic background feed crawl...")
+                await feed_store._refresh()
+                print("[main] Background feed crawl completed successfully.")
+            except Exception as e:
+                print(f"[main] Error during background feed crawl: {e}")
+            
+            # Sleep 30 minutes before next crawl
+            await asyncio.sleep(30 * 60)
 
     asyncio.create_task(_init_feed())
-    print("[main] vitap-UniOs API started. Feed refresh scheduled.")
+    print("[main] vitap-UniOs API started. Background feed refresh loop scheduled (every 30m).")
 
 
 @app.get("/")

@@ -45,7 +45,9 @@ export default function ClubsPage() {
   useEffect(() => {
     async function fetchClubs() {
       try {
-        const res = await fetch(`${API_URL}/api/clubs`);
+        const res = await fetch(`${API_URL}/api/clubs?t=${Date.now()}`, {
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error("Failed to fetch clubs");
         const data = await res.json();
         setClubs(data);
