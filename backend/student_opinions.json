@@ -1,0 +1,56 @@
+[
+  {
+    "title": "Student Opinion: Hostel Life, Curfews & Biometrics",
+    "content": "Hostel rules at VIT-AP are generally considered strict by students on Reddit and Google reviews. The biometrics attendance system is strictly enforced. The curfew for girls is usually 7:30 PM (LH-1 and LH-2), while boys (MH-1 to MH-5) must check in by 9:00 PM. Wardens are described as quite strict about timing, and missing curfew can lead to warnings or parent calls. However, LH hostels are praised for their safety, and MH blocks like MH-4 and MH-5 have modern layouts, clean hallways, and decent gym facilities. Students recommend applying for rooms early during FFCS to get choice rooms.",
+    "source_url": "https://www.reddit.com/r/vitap/comments/hostels_and_rules/",
+    "category": "hostel"
+  },
+  {
+    "title": "Student Opinion: Room Sharing and AC vs Non-AC",
+    "content": "On Reddit, seniors recommend 2-sharing or 4-sharing AC rooms over non-AC, especially because temperatures in Amaravathi can exceed 42 degrees Celsius during summer. MH-5 and LH-2 are the newest hostel blocks with better elevators and larger common areas. Non-AC rooms can get extremely hot and stuffy between April and June, and cooling coolers are often not allowed. Laundry services (like the outsourced centralized laundry) have long queues, and students complain about delayed clothes return (sometimes taking 4-5 days).",
+    "source_url": "https://www.reddit.com/r/vitap/comments/hostel_rooms_ac/",
+    "category": "hostel"
+  },
+  {
+    "title": "Student Opinion: Mess Food and Caterers (CRCL vs Aditya)",
+    "content": "Students on Instagram and Reddit frequently discuss mess food quality. Aditya and CRCL are the main caterers. Special Mess is widely recommended as it offers additional items like milk, eggs, cornflakes, and fruit daily, though it is more expensive. Regular Veg and Non-Veg mess food is described as average, with common complaints about repetitive menus and watery gravies. The food courts inside the campus (like Rock Plaza or the central canteen) and night canteens inside the hostels (open until 12:30 AM) are popular alternatives for quick snacks, pizzas, and rolls.",
+    "source_url": "https://www.reddit.com/r/vitap/comments/mess_food_reviews/",
+    "category": "hostel"
+  },
+  {
+    "title": "Student Opinion: IEEE Club and Technical Clubs",
+    "content": "The IEEE Student Branch at VIT-AP is highly active. Students online rate it as one of the best technical clubs alongside ACM and GDSC. Being part of the IEEE core committee or volunteering for their flagship events (like workshops, hackathons, and tech-fests) looks great on resumes and helps with CDC placements. Seniors advise juniors to participate actively in recruiting rounds rather than just taking membership. It provides a good coding culture, projects peer-group, and opportunity to collaborate on coding contests.",
+    "source_url": "https://www.reddit.com/r/vitap/comments/ieee_club_info/",
+    "category": "clubs"
+  },
+  {
+    "title": "Student Opinion: Club Culture and Resume Value",
+    "content": "VIT-AP has 70+ clubs, and students note that clubs like ACM, IEEE, NextGen Cloud, and GDSC are the most beneficial for technical growth and placements. Cultural clubs (like photography, music, dance) are active during the annual fest 'VITopia' and organize regular open-mic sessions. Some students complain that many small clubs become inactive after recruitment, so they recommend focusing on 1 or 2 highly active clubs rather than joining 5-6 different ones just for certificates.",
+    "source_url": "https://www.reddit.com/r/vitap/comments/club_culture/",
+    "category": "clubs"
+  },
+  {
+    "title": "Student Opinion: Faculty, Deans, and Teaching Styles",
+    "content": "Teaching quality at VIT-AP varies across schools like SCOPE (Computer Science) and SENSE (Electronics). The SCOPE Dean (Dr. Pradeep Reddy) is generally respected and focuses heavily on coding syllabus and exam standards. Students on Reddit advise using the Fully Flexible Credit System (FFCS) wisely to research faculty reviews before bidding. Some professors are described as strict with grading and require 75% attendance without exception, while others are very student-friendly, lenient with marks, and support student research publications.",
+    "source_url": "https://www.reddit.com/r/vitap/comments/faculty_reviews/",
+    "category": "faculty"
+  },
+  {
+    "title": "Student Opinion: 75% Attendance Rule & FFCS Bidding",
+    "content": "The 75% attendance rule is a major talking point among students. If attendance falls below 75% for any course, students are debarred from taking the final term exams (FAT), and they must register for it again. The FFCS (Fully Flexible Credit System) registration day is notoriously chaotic, with portal crashes, slow loading, and slots filling up in seconds. Seniors recommend having a backup timetable ready, keeping high CGPA (since registration slots open in batches based on CGPA ranking), and using high-speed ethernet or campus Wi-Fi during bidding.",
+    "source_url": "https://www.reddit.com/r/vitap/comments/ffcs_bidding_tips/",
+    "category": "academics"
+  },
+  {
+    "title": "Student Opinion: CDC Placements, Internships & Salary Realities",
+    "content": "Placements under the Career Development Centre (CDC) are centralized or shared with other VIT campuses. While many students get placed, students online emphasize that competition is intense because of the large batch size. 'Super Dream' offers (packages above 10 LPA) and 'Dream' offers (above 5.5 LPA) are highly sought after. Service companies also recruit in bulk. Students recommend maintaining a CGPA above 8.5, building 2-3 solid projects, and practicing DSA (Data Structures & Algorithms) on LeetCode starting from the 2nd year to clear the initial coding rounds.",
+    "source_url": "https://www.reddit.com/r/vitap/comments/cdc_placements/",
+    "category": "placements"
+  },
+  {
+    "title": "Student Opinion: Campus Infrastructure & Construction Status",
+    "content": "VIT-AP is a modern campus with beautiful green spaces, state-of-the-art labs, and a huge academic block. However, students mention that parts of the campus are still undergoing construction and expansion (like new hostel blocks or roads). The local weather in Amaravathi is extremely hot and humid in summer, making air-conditioned academic blocks a necessity. Transportation via university buses or local transport to Vijayawada and Guntur is well-arranged, though it can get crowded during weekends.",
+    "source_url": "https://www.reddit.com/r/vitap/comments/campus_and_weather/",
+    "category": "general"
+  }
+]

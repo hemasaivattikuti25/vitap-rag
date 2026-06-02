@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Qdrant local data
+local_qdrant/
+local_supabase.db
+
+# Scraped data cache (large file, rebuild on deploy)
+scraped_data_cache.json
+
+# Playwright browsers
+playwright-browsers/
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Node
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# Vercel
+.vercel
