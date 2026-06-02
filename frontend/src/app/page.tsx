@@ -20,31 +20,31 @@ interface FeedItem {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Event:      "#3b82f6",
-  Workshop:   "#8b5cf6",
-  Hackathon:  "#f59e0b",
-  Club:       "#10b981",
+  Event: "#3b82f6",
+  Workshop: "#8b5cf6",
+  Hackathon: "#f59e0b",
+  Club: "#10b981",
   Internship: "#06b6d4",
-  Placement:  "#ec4899",
-  Research:   "#6366f1",
-  News:       "#64748b",
-  Admission:  "#f97316",
-  Opportunity:"#14b8a6",
-  Other:      "#6b7280",
+  Placement: "#ec4899",
+  Research: "#6366f1",
+  News: "#64748b",
+  Admission: "#f97316",
+  Opportunity: "#14b8a6",
+  Other: "#6b7280",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
-  Event:      "🎉",
-  Workshop:   "🛠️",
-  Hackathon:  "💻",
-  Club:       "🏛️",
+  Event: "🎉",
+  Workshop: "🛠️",
+  Hackathon: "💻",
+  Club: "🏛️",
   Internship: "💼",
-  Placement:  "🎓",
-  Research:   "🔬",
-  News:       "📰",
-  Admission:  "📋",
-  Opportunity:"⚡",
-  Other:      "📌",
+  Placement: "🎓",
+  Research: "🔬",
+  News: "📰",
+  Admission: "📋",
+  Opportunity: "⚡",
+  Other: "📌",
 };
 
 const API_URL =
@@ -169,7 +169,7 @@ export default function Home() {
                     return next;
                   });
                 }
-              } catch {}
+              } catch { }
             }
           }
         }
@@ -287,8 +287,8 @@ export default function Home() {
                     msg.role === "user"
                       ? s.userBubble
                       : msg.error
-                      ? s.errorBubble
-                      : s.assistantBubble
+                        ? s.errorBubble
+                        : s.assistantBubble
                   }
                 >
                   <p style={s.msgText}>{msg.content}</p>
