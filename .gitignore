@@ -23,7 +23,6 @@ env/
 # Qdrant local data
 local_qdrant/
 local_supabase.db
-backend/fastembed_cache/
 
 # Scraped data cache (large file, rebuild on deploy)
 scraped_data_cache.json
