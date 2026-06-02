@@ -52,7 +52,7 @@ def main():
     # 4. Connect to Qdrant
     if QDRANT_URL and QDRANT_URL != "local" and QDRANT_URL.startswith("http"):
         print(f"Connecting to Qdrant Cloud: {QDRANT_URL}")
-        client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None)
+        client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None, timeout=60.0)
     else:
         path = os.path.join(os.path.dirname(__file__), "local_qdrant")
         print(f"Using local Qdrant at: {path}")

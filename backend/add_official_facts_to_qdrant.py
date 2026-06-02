@@ -77,7 +77,7 @@ def main():
     # 3. Upload to cloud
     if QDRANT_URL and QDRANT_URL != "local" and QDRANT_URL.startswith("http"):
         print(f"Connecting to Qdrant Cloud at {QDRANT_URL}...")
-        cloud_client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
+        cloud_client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=60.0)
         try:
             cloud_client.upsert(collection_name=COLLECTION, points=[point])
             print("Successfully uploaded B.Tech fees to Qdrant Cloud!")
