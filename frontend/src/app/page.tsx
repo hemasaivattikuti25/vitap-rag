@@ -382,14 +382,19 @@ export default function Home() {
           <div style={isMobile ? s.welcomeMobile : s.welcome}>
             <div style={s.welcomeGlow} />
             
-            {/* Premium Banner Card */}
-            <div style={isMobile ? s.bannerCardMobile : s.bannerCard}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/banner.png" alt="vitap-UniOs Banner" style={s.bannerImg} />
-              <div style={s.bannerOverlay} />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="vitap-UniOs Logo" style={isMobile ? s.bannerLogoMobile : s.bannerLogo} />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="vitap-UniOs Logo"
+              width={isMobile ? "64" : "80"}
+              height={isMobile ? "64" : "80"}
+              style={{
+                borderRadius: isMobile ? 12 : 16,
+                marginBottom: 12,
+                boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+                objectFit: "cover",
+              }}
+            />
 
             <h1 style={isMobile ? s.welcomeTitleMobile : s.welcomeTitle}>
               Hello, I&apos;m <span style={s.accent}>vitap-UniOs</span>
@@ -750,70 +755,7 @@ const s: Record<string, React.CSSProperties> = {
     letterSpacing: "-0.5px",
     position: "relative",
   },
-  bannerCard: {
-    position: "relative",
-    width: "100%",
-    maxWidth: 440,
-    height: 180,
-    borderRadius: 16,
-    overflow: "hidden",
-    border: "1px solid #1f1f23",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-    marginBottom: 8,
-    display: "flex",
-    alignItems: "flex-end",
-    padding: 16,
-  },
-  bannerCardMobile: {
-    position: "relative",
-    width: "100%",
-    maxWidth: 340,
-    height: 130,
-    borderRadius: 14,
-    overflow: "hidden",
-    border: "1px solid #1f1f23",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-    marginBottom: 4,
-    display: "flex",
-    alignItems: "flex-end",
-    padding: 12,
-  },
-  bannerImg: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  },
-  bannerOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background: "linear-gradient(to top, rgba(10,10,10,0.95) 0%, rgba(10,10,10,0.3) 100%)",
-  },
-  bannerLogo: {
-    position: "relative",
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    border: "2px solid #1f1f23",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-    objectFit: "cover",
-    zIndex: 2,
-  },
-  bannerLogoMobile: {
-    position: "relative",
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    border: "2px solid #1f1f23",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-    objectFit: "cover",
-    zIndex: 2,
-  },
+
   welcomeGlow: {
     position: "absolute",
     width: 300,
