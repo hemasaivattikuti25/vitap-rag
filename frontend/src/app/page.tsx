@@ -217,10 +217,8 @@ export default function Home() {
       {/* ── Sidebar ── */}
       <aside style={s.sidebar}>
         <div style={s.logo}>
-          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-            <circle cx="13" cy="13" r="12" stroke="#fff" strokeWidth="1.5" />
-            <path d="M7 13h12M13 7v12" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="CampusOS Logo" width="28" height="28" style={{ borderRadius: 6, objectFit: "cover" }} />
           <span style={s.logoText}>CampusOS</span>
         </div>
 
@@ -260,6 +258,8 @@ export default function Home() {
         {!started ? (
           <div style={s.welcome}>
             <div style={s.welcomeGlow} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="CampusOS Logo" width="80" height="80" style={{ borderRadius: 16, marginBottom: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }} />
             <h1 style={s.welcomeTitle}>
               Hello, I&apos;m <span style={s.accent}>CampusOS</span>
             </h1>
