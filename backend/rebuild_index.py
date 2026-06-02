@@ -30,44 +30,17 @@ CACHE_FILE     = "scraped_data_cache.json"
 PAGES = [
     ("https://vitap.ac.in/",                          "general"),
     ("https://vitap.ac.in/clubs-and-chapters/",       "clubs"),
-    ("https://vitap.ac.in/news-events/",              "events"),
-    ("https://vitap.ac.in/academic-programmes/",      "academics"),
-    ("https://vitap.ac.in/undergraduate/",            "academics"),
-    ("https://vitap.ac.in/postgraduate/",             "academics"),
-    ("https://vitap.ac.in/research/",                 "research"),
-    ("https://vitap.ac.in/placements/",               "placements"),
+    ("https://vitap.ac.in/events/",                   "events"),
+    ("https://vitap.ac.in/news/",                     "news"),
+    ("https://vitap.ac.in/allschools/",               "academics"),
+    ("https://vitap.ac.in/academiccalender/",          "academics"),
+    ("https://vitap.ac.in/academic-research/",        "research"),
+    ("https://vitap.ac.in/sporic/",                   "research"),
     ("https://vitap.ac.in/international-relations/",  "international"),
-    ("https://vitap.ac.in/student-life/",             "student_life"),
-    ("https://vitap.ac.in/facilities/",               "facilities"),
     ("https://vitap.ac.in/sports/",                   "sports"),
-    ("https://vitap.ac.in/faculty/",                  "faculty"),
-    ("https://vitap.ac.in/administration/",           "administration"),
     ("https://vitap.ac.in/contact-us/",               "contact"),
-    ("https://vitap.ac.in/fee-structure/",            "fees"),
-    ("https://vitap.ac.in/hostel/",                   "hostel"),
-    ("https://vitap.ac.in/scholarships/",             "scholarships"),
-    ("https://vitap.ac.in/about-vit-ap/",             "about"),
-    ("https://vitap.ac.in/vision-mission/",           "about"),
-
-    # School-Specific Faculty Pages
-    ("https://vitap.ac.in/scope-faculty/",            "faculty"),
-    ("https://vitap.ac.in/sense-faculty/",            "faculty"),
-    ("https://vitap.ac.in/sas-faculty/",              "faculty"),
-    ("https://vitap.ac.in/vsb-faculty/",              "faculty"),
-    ("https://vitap.ac.in/vsl-faculty/",              "faculty"),
-    ("https://vitap.ac.in/vish-faculty/",             "faculty"),
-    ("https://vitap.ac.in/school-of-mechanical-engineering-smec/", "faculty"),
-
-    # B.Tech Programme Pages
-    ("https://vitap.ac.in/btech-computer-science-and-engineering/", "academics"),
-    ("https://vitap.ac.in/btech-cse-artificial-intelligence-and-machine-learning/", "academics"),
-    ("https://vitap.ac.in/btech-cse-cyber-security/", "academics"),
-    ("https://vitap.ac.in/btech-cse-data-analytics/", "academics"),
-    ("https://vitap.ac.in/btech-cse-blockchain-technology/", "academics"),
-    ("https://vitap.ac.in/btech-software-engineering/", "academics"),
-    ("https://vitap.ac.in/btech-computer-science-and-business-systems-tcs/", "academics"),
-    ("https://vitap.ac.in/btech-electronics-and-communication-engineering/", "academics"),
-    ("https://vitap.ac.in/btech-electronics-and-computer-engineering/", "academics"),
+    ("https://vitap.ac.in/fees-and-scholarships/",    "fees"),
+    ("https://vitap.ac.in/hostels/",                  "hostel"),
 ]
 
 
@@ -301,7 +274,7 @@ async def main():
     args = parser.parse_args()
 
     print("=" * 55)
-    print(" CampusOS — Qdrant Index Rebuild (Playwright)")
+    print(" vitap-UniOs — Qdrant Index Rebuild (Playwright)")
     print(" Embeddings: sentence-transformers/all-MiniLM-L6-v2")
     print("=" * 55)
 

@@ -10,7 +10,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from api.routes import router
 
-app = FastAPI(title="CampusOS API", version="2.0.0")
+app = FastAPI(title="vitap-UniOs API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,9 +33,9 @@ async def startup_event():
         await feed_store._refresh()
 
     asyncio.create_task(_init_feed())
-    print("[main] CampusOS API started. Feed refresh scheduled.")
+    print("[main] vitap-UniOs API started. Feed refresh scheduled.")
 
 
 @app.get("/")
 def read_root():
-    return {"message": "CampusOS API v2 — Campus Platform for VIT-AP"}
+    return {"message": "vitap-UniOs API v2 — Campus Platform for VIT-AP"}

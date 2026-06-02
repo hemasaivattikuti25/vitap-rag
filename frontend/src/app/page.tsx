@@ -105,7 +105,7 @@ export default function Home() {
       }
     } else {
       alert(
-        "To install CampusOS as a Mobile Web App:\n\n" +
+        "To install vitap-UniOs as a Mobile Web App:\n\n" +
         "• iOS (Safari): Tap the Share button (square with arrow up) at the bottom, then scroll down and tap 'Add to Home Screen'.\n" +
         "• Android (Chrome): Tap the three dots menu at the top right, then tap 'Install app' or 'Add to Home screen'."
       );
@@ -264,8 +264,8 @@ export default function Home() {
       <aside className={`desktop-sidebar ${mobileSidebarOpen ? "open" : ""}`} style={s.sidebar}>
         <div style={s.logo}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="CampusOS Logo" width="28" height="28" style={{ borderRadius: 6, objectFit: "cover" }} />
-          <span style={s.logoText}>CampusOS</span>
+          <img src="/logo.png" alt="vitap-UniOs Logo" width="28" height="28" style={{ borderRadius: 6, objectFit: "cover" }} />
+          <span style={s.logoText}>vitap-UniOs</span>
           <button
             className="mobile-close-btn"
             onClick={() => setMobileSidebarOpen(false)}
@@ -316,6 +316,9 @@ export default function Home() {
             </button>
           )}
           <div style={s.sidebarBadge}>Powered by Groq + Qdrant</div>
+          <div style={{ fontSize: 9, color: "#444", textAlign: "center", paddingTop: 4, letterSpacing: "0.2px" }}>
+            Developed by Hemasai Vattikuti
+          </div>
         </div>
       </aside>
 
@@ -335,8 +338,8 @@ export default function Home() {
           
           <div style={s.mobileHeaderTitle}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="CampusOS Logo" width="22" height="22" style={{ borderRadius: 5 }} />
-            <span>CampusOS</span>
+            <img src="/logo.png" alt="vitap-UniOs Logo" width="22" height="22" style={{ borderRadius: 5 }} />
+            <span>vitap-UniOs</span>
           </div>
           
           <button
@@ -369,9 +372,9 @@ export default function Home() {
           <div style={s.welcome}>
             <div style={s.welcomeGlow} />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="CampusOS Logo" width="80" height="80" style={{ borderRadius: 16, marginBottom: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }} />
+            <img src="/logo.png" alt="vitap-UniOs Logo" width="80" height="80" style={{ borderRadius: 16, marginBottom: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }} />
             <h1 style={s.welcomeTitle}>
-              Hello, I&apos;m <span style={s.accent}>CampusOS</span>
+              Hello, I&apos;m <span style={s.accent}>vitap-UniOs</span>
             </h1>
             <p style={s.welcomeSub}>Ask me anything about VIT-AP University</p>
             <div style={s.quickChips}>
@@ -389,7 +392,7 @@ export default function Home() {
                 {msg.role === "assistant" && (
                   <div style={s.avatar}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo.png" alt="CampusOS" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                    <img src="/logo.png" alt="vitap-UniOs" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                   </div>
                 )}
                 <div
@@ -423,7 +426,7 @@ export default function Home() {
                 <div style={s.assistantRow}>
                   <div style={s.avatar}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo.png" alt="CampusOS" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                    <img src="/logo.png" alt="vitap-UniOs" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                   </div>
                   <div style={s.assistantBubble}>
                     <div style={s.dotsWrapper}>
@@ -466,7 +469,7 @@ export default function Home() {
               </svg>
             </button>
           </div>
-          <p style={s.disclaimer}>CampusOS may make mistakes. Verify on the official VIT-AP portal.</p>
+          <p style={s.disclaimer}>vitap-UniOs may make mistakes. Verify on the official VIT-AP portal.</p>
         </div>
       </main>
 

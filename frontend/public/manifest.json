@@ -1,6 +1,6 @@
 {
-  "name": "CampusOS — VIT-AP",
-  "short_name": "CampusOS",
+  "name": "vitap-UniOs — VIT-AP",
+  "short_name": "vitap-UniOs",
   "description": "Your intelligent campus assistant for VIT-AP University",
   "start_url": "/",
   "display": "standalone",

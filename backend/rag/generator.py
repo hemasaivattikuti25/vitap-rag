@@ -34,7 +34,7 @@ _groq_client = AsyncGroq(api_key=GROQ_API_KEY) if _HAS_GROQ and GROQ_API_KEY els
 retriever = QdrantRetriever()
 
 # ── Base System Prompt ──────────────────────────────────────────
-BASE_SYSTEM_PROMPT = """You are CampusOS, an intelligent, helpful, and highly accurate AI chatbot for VIT-AP University students.
+BASE_SYSTEM_PROMPT = """You are vitap-UniOs, an intelligent, helpful, and highly accurate AI chatbot for VIT-AP University students.
 
 Safety and Tone Guidelines:
 - Never use bad, offensive, profane, or unethical words.

@@ -22,11 +22,10 @@ HEADERS = {
 VIT_AP_SOURCES = [
     {"url": "https://vitap.ac.in/events",             "category": "Event"},
     {"url": "https://vitap.ac.in/news",               "category": "News"},
-    {"url": "https://vitap.ac.in/workshops",          "category": "Workshop"},
-    {"url": "https://vitap.ac.in/clubs",              "category": "Club"},
-    {"url": "https://vitap.ac.in/placements",         "category": "Placement"},
-    {"url": "https://vitap.ac.in/admissions",         "category": "Admission"},
-    {"url": "https://vitap.ac.in/research",           "category": "Research"},
+    {"url": "https://vitap.ac.in/clubs-and-chapters", "category": "Club"},
+    {"url": "https://vitap.ac.in/fees-and-scholarships", "category": "Admission"},
+    {"url": "https://vitap.ac.in/academic-research",  "category": "Research"},
+    {"url": "https://vitap.ac.in/sporic",             "category": "Research"},
 ]
 
 # Fallback DDG searches to fill the feed

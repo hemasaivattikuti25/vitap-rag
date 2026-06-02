@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CampusOS — VIT-AP Assistant",
+  title: "vitap-UniOs — VIT-AP Assistant",
   description: "Your intelligent campus assistant for VIT-AP University",
   manifest: "/manifest.json",
   icons: {
