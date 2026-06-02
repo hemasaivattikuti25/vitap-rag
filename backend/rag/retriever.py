@@ -36,9 +36,11 @@ class QdrantRetriever:
         # 2. Load embedding model using FastEmbed
         try:
             from fastembed import TextEmbedding
-            # This loads the ONNX model and runs on ONNX Runtime (CPU)
-            self._model = TextEmbedding(model_name=MODEL_NAME)
-            print(f"[retriever] FastEmbed loaded model: {MODEL_NAME}")
+            # Use custom local cache dir so it loads instantly from pre-downloaded build files
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            local_cache_path = os.path.join(base_dir, "fastembed_cache")
+            self._model = TextEmbedding(model_name=MODEL_NAME, cache_dir=local_cache_path)
+            print(f"[retriever] FastEmbed loaded model: {MODEL_NAME} from {local_cache_path}")
         except Exception as e:
             print(f"[retriever] ERROR loading FastEmbed: {e}")
             self._model = None
