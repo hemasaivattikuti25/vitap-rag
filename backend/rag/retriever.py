@@ -72,19 +72,15 @@ class QdrantRetriever:
         try:
             query_vector = self._embed(query)
 
-            # Handle both remote QdrantClient and local QdrantLocal
-            search_func = getattr(self.client, "search", None)
-            if not search_func and hasattr(self.client, "_client"):
-                search_func = getattr(self.client._client, "search", None)
-
-            if not search_func:
-                raise AttributeError("QdrantClient has no search method.")
-
-            results_raw = search_func(
+            # Use modern query_points API (available in Qdrant 1.18.0)
+            response = self.client.query_points(
                 collection_name=self.collection_name,
-                query_vector=query_vector,
+                query=query_vector,
                 limit=top_k,
             )
+
+            # query_points returns a QueryResponse which contains a list of points
+            results_raw = response.points if hasattr(response, "points") else response
 
             return [
                 {
@@ -99,3 +95,4 @@ class QdrantRetriever:
         except Exception as e:
             print(f"[retriever] Error during retrieval: {e}")
             return []
+

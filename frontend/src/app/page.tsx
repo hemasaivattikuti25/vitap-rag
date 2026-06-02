@@ -68,6 +68,50 @@ export default function Home() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileFeedOpen, setMobileFeedOpen] = useState(false);
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    // Show Install option on iOS/Android browsers (as a fallback guide)
+    if (typeof window !== "undefined" && typeof navigator !== "undefined") {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      const isAndroid = /Android/.test(navigator.userAgent);
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+      if ((isIOS || isAndroid) && !isStandalone) {
+        setShowInstallBtn(true);
+      }
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setDeferredPrompt(null);
+        setShowInstallBtn(false);
+      }
+    } else {
+      alert(
+        "To install CampusOS as a Mobile Web App:\n\n" +
+        "• iOS (Safari): Tap the Share button (square with arrow up) at the bottom, then scroll down and tap 'Add to Home Screen'.\n" +
+        "• Android (Chrome): Tap the three dots menu at the top right, then tap 'Install app' or 'Add to Home screen'."
+      );
+    }
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
@@ -259,6 +303,18 @@ export default function Home() {
         </div>
 
         <div style={{ marginTop: "auto" }}>
+          {showInstallBtn && (
+            <button
+              onClick={handleInstallClick}
+              className="install-btn"
+              style={s.installBtn}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              Install App
+            </button>
+          )}
           <div style={s.sidebarBadge}>Powered by Groq + Qdrant</div>
         </div>
       </aside>
@@ -517,83 +573,6 @@ export default function Home() {
           )}
         </div>
       </aside>
-
-      <style>{`
-        .mobile-close-btn { display: none; }
-
-        @media (max-width: 768px) {
-          .desktop-sidebar {
-            position: fixed !important;
-            left: -220px;
-            top: 0;
-            height: 100vh;
-            z-index: 100;
-            transition: left 0.25s ease-in-out;
-            box-shadow: 5px 0 25px rgba(0,0,0,0.5);
-          }
-          .desktop-sidebar.open {
-            left: 0 !important;
-          }
-          .desktop-feed {
-            position: fixed !important;
-            right: -300px;
-            top: 0;
-            height: 100vh;
-            z-index: 100;
-            transition: right 0.25s ease-in-out;
-            box-shadow: -5px 0 25px rgba(0,0,0,0.5);
-          }
-          .desktop-feed.open {
-            right: 0 !important;
-          }
-          .mobile-header {
-            display: flex !important;
-          }
-          .mobile-close-btn {
-            display: block !important;
-          }
-          .overlay {
-            display: block !important;
-          }
-        }
-
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); opacity: 0.4; }
-          50% { transform: translateY(-4px); opacity: 1; }
-        }
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        @keyframes glow-pulse {
-          0%, 100% { opacity: 0.15; transform: scale(1); }
-          50% { opacity: 0.25; transform: scale(1.05); }
-        }
-        textarea::-webkit-scrollbar { display: none; }
-        textarea { scrollbar-width: none; }
-        * { box-sizing: border-box; }
-        body { overflow: hidden; margin: 0; }
-        a { text-decoration: none; }
-        button { font-family: inherit; }
-
-        .feed-card-hover:hover {
-          background: #1a1a1a !important;
-          border-color: #333 !important;
-          transform: translateY(-1px);
-        }
-        .cat-pill:hover {
-          background: #1e1e1e !important;
-          border-color: #333 !important;
-        }
-        .chip:hover {
-          background: #1e1e1e !important;
-          border-color: #333 !important;
-        }
-        /* Scrollbars for feed */
-        .feed-list::-webkit-scrollbar { width: 3px; }
-        .feed-list::-webkit-scrollbar-track { background: transparent; }
-        .feed-list::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
-      `}</style>
     </div>
   );
 }
@@ -687,6 +666,23 @@ const s: Record<string, React.CSSProperties> = {
     textAlign: "center" as const,
     padding: "8px 4px",
     borderTop: "1px solid #1a1a1a",
+  },
+  installBtn: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    background: "#161616",
+    border: "1px solid #222",
+    borderRadius: 9,
+    color: "#aaa",
+    fontSize: 12,
+    fontWeight: 500,
+    padding: "8px 12px",
+    cursor: "pointer",
+    transition: "all 0.15s",
+    width: "100%",
+    marginBottom: 10,
   },
 
   /* Main */

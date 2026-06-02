@@ -1,3 +1,120 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─── Custom Global Styles for CampusOS ─── */
+
+.mobile-close-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-sidebar {
+    position: fixed !important;
+    left: -220px;
+    top: 0;
+    height: 100vh;
+    z-index: 100;
+    transition: left 0.25s ease-in-out;
+    box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+  }
+  .desktop-sidebar.open {
+    left: 0 !important;
+  }
+  .desktop-feed {
+    position: fixed !important;
+    right: -300px;
+    top: 0;
+    height: 100vh;
+    z-index: 100;
+    transition: right 0.25s ease-in-out;
+    box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+  }
+  .desktop-feed.open {
+    right: 0 !important;
+  }
+  .mobile-header {
+    display: flex !important;
+  }
+  .mobile-close-btn {
+    display: block !important;
+  }
+  .overlay {
+    display: block !important;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.25; transform: scale(1.05); }
+}
+
+textarea::-webkit-scrollbar {
+  display: none;
+}
+
+textarea {
+  scrollbar-width: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  margin: 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+.feed-card-hover:hover {
+  background: #1a1a1a !important;
+  border-color: #333 !important;
+  transform: translateY(-1px);
+}
+
+.cat-pill:hover {
+  background: #1e1e1e !important;
+  border-color: #333 !important;
+}
+
+.chip:hover {
+  background: #1e1e1e !important;
+  border-color: #333 !important;
+}
+
+.install-btn:hover {
+  background: #222 !important;
+  border-color: #444 !important;
+}
+
+/* Scrollbars for feed */
+.feed-list::-webkit-scrollbar {
+  width: 3px;
+}
+
+.feed-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.feed-list::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 3px;
+}
