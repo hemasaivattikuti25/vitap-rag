@@ -266,7 +266,7 @@ export default function Home() {
             <p style={s.welcomeSub}>Ask me anything about VIT-AP University</p>
             <div style={s.quickChips}>
               {["Fee structure", "Clubs at VIT-AP", "Who is dean of SCOPE", "Placement stats"].map((q) => (
-                <button key={q} style={s.chip} onClick={() => sendMessage(q)}>
+                <button key={q} className="chip" style={s.chip} onClick={() => sendMessage(q)}>
                   {q}
                 </button>
               ))}
@@ -392,6 +392,7 @@ export default function Home() {
           {feedCategories.slice(0, 6).map((cat) => (
             <button
               key={cat}
+              className="cat-pill"
               style={{
                 ...s.catPill,
                 ...(activeCategory === cat ? s.catPillActive : {}),
@@ -405,7 +406,7 @@ export default function Home() {
         </div>
 
         {/* Feed items */}
-        <div style={s.feedList}>
+        <div className="feed-list" style={s.feedList}>
           {feedLoading ? (
             <div style={s.feedLoading}>
               {[1, 2, 3, 4].map((i) => (
@@ -424,6 +425,7 @@ export default function Home() {
                 href={item.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="feed-card-hover"
                 style={s.feedCard}
               >
                 <div style={s.feedCardTop}>
@@ -661,7 +663,6 @@ const s: Record<string, React.CSSProperties> = {
     padding: "7px 14px",
     cursor: "pointer",
     transition: "all 0.15s",
-    className: "chip",
   },
 
   /* Chat */
@@ -883,7 +884,6 @@ const s: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: 6,
-    className: "feed-list",
   },
   feedLoading: {
     display: "flex",
@@ -917,7 +917,6 @@ const s: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     transition: "all 0.15s",
     color: "inherit",
-    className: "feed-card-hover",
   },
   feedCardTop: {
     display: "flex",
