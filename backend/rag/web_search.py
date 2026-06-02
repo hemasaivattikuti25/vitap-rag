@@ -93,6 +93,12 @@ def _parse_ddg_html(html_text: str, max_results: int) -> List[Dict[str, str]]:
                 href = qs["uddg"][0]
         snippet_el = div.find("a", class_="result__snippet")
         snippet = snippet_el.get_text(strip=True) if snippet_el else ""
+        
+        # Exclude Reddit, Quora, and generic forums to ensure official accuracy
+        lower_href = href.lower()
+        if "reddit.com" in lower_href or "quora.com" in lower_href:
+            continue
+            
         if title or snippet:
             results.append({"title": title, "content": snippet, "source_url": href})
     return results

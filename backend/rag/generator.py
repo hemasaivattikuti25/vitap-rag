@@ -136,7 +136,18 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
                 citations.extend(d["source_url"] for d in web_docs)
                 
             # 2. Add high-quality local Qdrant documents (score >= 0.32)
-            filtered_local = [d for d in local_docs if d["score"] >= 0.32]
+            user_wants_opinions = any(w in q_lower for w in ["reddit", "opinion", "review", "sentiment", "student say", "think about"])
+            filtered_local = []
+            for d in local_docs:
+                if d["score"] < 0.32:
+                    continue
+                is_opinion_source = d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", "").lower()
+                # Exclude student opinions/Reddit comments for general factual queries
+                if is_opinion_source and not user_wants_opinions:
+                    print(f"[generator] Excluding local opinion chunk '{d['title']}' to ensure factual accuracy.")
+                    continue
+                filtered_local.append(d)
+
             if filtered_local:
                 official_info = []
                 student_opinions = []
