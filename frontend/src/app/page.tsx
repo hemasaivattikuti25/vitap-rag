@@ -278,10 +278,8 @@ export default function Home() {
               <div key={idx} style={msg.role === "user" ? s.userRow : s.assistantRow}>
                 {msg.role === "assistant" && (
                   <div style={s.avatar}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <circle cx="7" cy="7" r="6" stroke="#fff" strokeWidth="1" />
-                      <path d="M3.5 7h7M7 3.5v7" stroke="#fff" strokeWidth="1" strokeLinecap="round" />
-                    </svg>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/logo.png" alt="CampusOS" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                   </div>
                 )}
                 <div
@@ -314,10 +312,8 @@ export default function Home() {
               messages[messages.length - 1].content === "" && (
                 <div style={s.assistantRow}>
                   <div style={s.avatar}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <circle cx="7" cy="7" r="6" stroke="#fff" strokeWidth="1" />
-                      <path d="M3.5 7h7M7 3.5v7" stroke="#fff" strokeWidth="1" strokeLinecap="round" />
-                    </svg>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/logo.png" alt="CampusOS" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                   </div>
                   <div style={s.assistantBubble}>
                     <div style={s.dotsWrapper}>
