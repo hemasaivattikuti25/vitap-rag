@@ -48,6 +48,32 @@ Safety and Tone Guidelines:
 - If the context does not contain the answer, use your general knowledge about VIT-AP to provide a helpful answer, but do not make up specific details like phone numbers or links.
 """
 
+def is_false_positive(query: str, doc_content: str, doc_title: str) -> bool:
+    q = query.lower().strip()
+    c = (doc_content + " " + doc_title).lower()
+    
+    # Placements query vs non-placement doc
+    if any(w in q for w in ["placement", "cdc", "job", "salary", "placed", "recruit", "career", "super dream"]):
+        if not any(w in c for w in ["placement", "cdc", "job", "salary", "placed", "recruit", "career", "super dream", "offer", "company"]):
+            return True
+            
+    # Fee query vs non-fee doc
+    if any(w in q for w in ["fee", "fees", "cost", "price", "tuition", "scholarship"]):
+        if not any(w in c for w in ["fee", "fees", "cost", "price", "tuition", "scholarship", "rupees", "lakh", "paid"]):
+            return True
+            
+    # Hostel query vs non-hostel doc
+    if any(w in q for w in ["hostel", "hostels", "mess", "room", "laundry", "canteen"]):
+        if not any(w in c for w in ["hostel", "hostels", "mess", "room", "laundry", "canteen", "accommodation", "warden"]):
+            return True
+            
+    # Sports query vs non-sports doc
+    if any(w in q for w in ["sport", "sports", "gym", "game", "badminton", "cricket"]):
+        if not any(w in c for w in ["sport", "sports", "gym", "game", "badminton", "cricket", "court", "fitness"]):
+            return True
+            
+    return False
+
 async def generate_answer_stream(query: str, history: Optional[List[dict]] = None):
     """
     Generate response token by token in SSE format.
@@ -140,6 +166,10 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
             filtered_local = []
             for d in local_docs:
                 if d["score"] < 0.32:
+                    continue
+                # Exclude cross-domain false positive semantic matches (e.g. sports pages matching placements)
+                if is_false_positive(query, d.get("content", ""), d.get("title", "")):
+                    print(f"[generator] Excluding false positive local chunk '{d['title']}' for query '{query[:30]}'")
                     continue
                 is_opinion_source = d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", "").lower()
                 # Exclude student opinions/Reddit comments for general factual queries

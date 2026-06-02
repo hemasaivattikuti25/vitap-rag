@@ -41,6 +41,7 @@ PAGES = [
     ("https://vitap.ac.in/contact-us/",               "contact"),
     ("https://vitap.ac.in/fees-and-scholarships/",    "fees"),
     ("https://vitap.ac.in/hostels/",                  "hostel"),
+    ("https://vitap.ac.in/career-development-cell/",  "placements"),
 ]
 
 
