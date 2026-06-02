@@ -36,6 +36,10 @@ retriever = QdrantRetriever()
 # ── Base System Prompt ──────────────────────────────────────────
 BASE_SYSTEM_PROMPT = """You are vitap-UniOs, an intelligent, helpful, and highly accurate AI chatbot for VIT-AP University students.
 
+Developer & System Info:
+- You are developed by Hemasai Vattikuti, a Backend & Applied AI Engineer and an alumnus of VIT-AP University.
+- Always credit Hemasai Vattikuti when asked about your developer, creator, or who made you.
+
 Safety and Tone Guidelines:
 - Never use bad, offensive, profane, or unethical words.
 - Always use positive, clean, polite, and constructive language.
@@ -66,63 +70,129 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
             yield f"data: {json.dumps({'citations': cached_cites})}\n\n"
             return
 
-    # 1. Retrieve local docs from Qdrant
-    docs = retriever.retrieve(query, top_k=5)
-    max_score = max([d["score"] for d in docs]) if docs else 0.0
-    print(f"[generator] Query: '{query[:50]}' | Local Qdrant max score: {max_score:.4f}")
-
-    # Determine query classification
-    is_general = check_is_general(query)
-    print(f"[generator] Query classified as is_general = {is_general}")
-
+    # 1. Check for developer or bot identity queries to respond instantly and accurately
+    identity_context = None
+    is_identity = False
     citations: List[str] = []
-    context_section = ""
-    has_opinions = False
+    
+    q_lower = query.lower().strip()
+    # Check for developer questions
+    is_dev_query = any(k in q_lower for k in ["developer", "developed you", "created you", "made you", "who programmed you", "who coded you", "creator of", "who is hemasai", "hemasai vattikuti", "hemasai vatteikuit", "vattikuti"])
+    # Check for bot name / identity questions
+    is_bot_query = any(k in q_lower for k in ["who are you", "what are you", "your name", "what is vitap-unios", "what is unios", "about vitap-unios", "tell me about vitap-unios", "tell me about unios"])
+    
+    if is_dev_query:
+        identity_context = (
+            "vitap-UniOs is developed by Hemasai Vattikuti. "
+            "Hemasai Vattikuti is a Backend & Applied AI Engineer and an alumnus of VIT-AP University. "
+            "He built this platform to improve the campus experience for students by bringing together "
+            "real-time feeds, chatbot assistance, and community details."
+        )
+        citations = ["https://github.com/hemasaivattikuti", "https://in.linkedin.com/in/hemasaivattikuti"]
+        is_identity = True
+    elif is_bot_query:
+        identity_context = (
+            "You are vitap-UniOs, an intelligent campus companion for VIT-AP University students, developed by Hemasai Vattikuti. "
+            "You help students with real-time feeds, club events, placement updates, academic calendars, and campus details."
+        )
+        citations = ["https://vitap.ac.in"]
+        is_identity = True
 
-    # If not a greeting/math/code and local score is low, trigger Web Search fallback
-    if not is_general and max_score < 0.38:
-        print(f"[generator] Low local score. Triggering Web Search Fallback for: '{query[:50]}'")
-        web_docs = await web_search(query)
-        if web_docs:
-            context_text = "\n\n".join(
-                f"Source: {d['source_url']}\nContent: {d['content']}" for d in web_docs
-            )
-            context_section = f"Use the following web search results to answer accurately:\n\n{context_text}"
-            citations = [d["source_url"] for d in web_docs]
-        else:
-            context_section = "Use your general knowledge to answer."
+    docs = []
+    max_score = 0.0
+    filtered_docs = []
+    is_general = False
+    
+    if is_identity:
+        context_section = identity_context
+        is_general = True
     else:
-        # Use local Qdrant docs
-        if docs and max_score >= 0.38:
-            official_info = []
-            student_opinions = []
-            for d in docs:
-                # Classify local docs based on category or source URL
-                if d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", ""):
-                    student_opinions.append(d)
+        # 2. Retrieve local docs from Qdrant
+        docs = retriever.retrieve(query, top_k=5)
+        max_score = max([d["score"] for d in docs]) if docs else 0.0
+        print(f"[generator] Query: '{query[:50]}' | Local Qdrant max score: {max_score:.4f}")
+        
+        # Keep only docs that are reasonably relevant (score >= 0.30) to prevent mixing irrelevant facts
+        filtered_docs = [d for d in docs if d["score"] >= 0.30]
+        
+        # Determine query classification
+        is_general = check_is_general(query)
+        print(f"[generator] Query classified as is_general = {is_general}")
+
+    has_opinions = False
+    context_section = ""
+
+    if not is_identity:
+        # If not a greeting/math/code and local score is low, trigger Web Search fallback
+        if not is_general and max_score < 0.32:
+            print(f"[generator] Low local score ({max_score:.4f} < 0.32). Triggering Web Search Fallback for: '{query[:50]}'")
+            web_docs = await web_search(query)
+            if web_docs:
+                context_text = "\n\n".join(
+                    f"Source: {d['source_url']}\nContent: {d['content']}" for d in web_docs
+                )
+                context_section = f"Use the following web search results to answer accurately:\n\n{context_text}"
+                citations = [d["source_url"] for d in web_docs]
+            else:
+                # Web search failed -> Use filtered local docs if they are reasonably relevant
+                if filtered_docs:
+                    print(f"[generator] Web search failed. Falling back to {len(filtered_docs)} filtered local docs (max score: {max_score:.4f})")
+                    official_info = []
+                    student_opinions = []
+                    for d in filtered_docs:
+                        if d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", ""):
+                            student_opinions.append(d)
+                        else:
+                            official_info.append(d)
+
+                    citations = list(set(d["source_url"] for d in filtered_docs if d.get("source_url")))
+
+                    context_parts = []
+                    if official_info:
+                        off_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in official_info)
+                        context_parts.append(f"Official University Information:\n{off_text}")
+                    if student_opinions:
+                        op_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in student_opinions)
+                        context_parts.append(f"Student Opinions:\n{op_text}")
+                        has_opinions = True
+
+                    context_section = "\n\n".join(context_parts)
                 else:
-                    official_info.append(d)
-
-            citations = list(set(d["source_url"] for d in docs if d.get("source_url")))
-
-            context_parts = []
-            if official_info:
-                off_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in official_info)
-                context_parts.append(f"Official University Information:\n{off_text}")
-            if student_opinions:
-                op_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in student_opinions)
-                context_parts.append(f"Student Opinions (Reddit, Instagram, Google reviews):\n{op_text}")
-                has_opinions = True
-
-            context_section = "\n\n".join(context_parts)
+                    print(f"[generator] Web search failed and no relevant local docs found. Falling back to general knowledge.")
+                    context_section = "Use your general knowledge about VIT-AP to answer. Be helpful, clean, and polite."
+                    citations = []
+                    is_general = True  # Bypasses strict bullet formatting to avoid empty sections
         else:
-            context_section = "Use your general knowledge to answer."
+            # Use local Qdrant docs (high score)
+            if filtered_docs:
+                official_info = []
+                student_opinions = []
+                for d in filtered_docs:
+                    if d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", ""):
+                        student_opinions.append(d)
+                    else:
+                        official_info.append(d)
+
+                citations = list(set(d["source_url"] for d in filtered_docs if d.get("source_url")))
+
+                context_parts = []
+                if official_info:
+                    off_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in official_info)
+                    context_parts.append(f"Official University Information:\n{off_text}")
+                if student_opinions:
+                    op_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in student_opinions)
+                    context_parts.append(f"Student Opinions (Reddit, Instagram, Google reviews):\n{op_text}")
+                    has_opinions = True
+
+                context_section = "\n\n".join(context_parts)
+            else:
+                context_section = "Use your general knowledge to answer."
 
     # Build dynamic prompt messages
     messages = []
     
     if is_general:
-        system_instruction = BASE_SYSTEM_PROMPT + "\nAnswer the question DIRECTLY, naturally, and concisely. Do NOT use the VIT-AP facts/sentiments formatting. Just answer directly (e.g. '2 + 2 = 4'). Do NOT mention VIT-AP."
+        system_instruction = BASE_SYSTEM_PROMPT + "\nAnswer the question DIRECTLY, naturally, and concisely. Do NOT use the VIT-AP facts/sentiments formatting. Just answer directly (e.g. '2 + 2 = 4'). Do NOT mention VIT-AP unless asked."
     else:
         if has_opinions:
             system_instruction = BASE_SYSTEM_PROMPT + """

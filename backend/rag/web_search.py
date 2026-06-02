@@ -121,20 +121,29 @@ async def web_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
     }
     ddg_url = "https://html.duckduckgo.com/html/"
 
-    async with httpx.AsyncClient(timeout=8.0) as client:
-        # Primary search
+    # Use a much lower timeout (2.5s) to avoid stalling the chatbot on failures
+    async with httpx.AsyncClient(timeout=2.5) as client:
+        primary_success = False
         try:
             resp = await client.get(ddg_url, params={"q": search_query}, headers=headers)
             if resp.status_code == 200:
+                primary_success = True
                 results = _parse_ddg_html(resp.text, max_results)
                 if results:
                     print(f"[web_search] Found {len(results)} results")
                     return results
+                else:
+                    # Check if we were rate limited / CAPTCHAd
+                    lowered_text = resp.text.lower()
+                    if any(kw in lowered_text for kw in ["captcha", "robot", "forbidden", "check your browser"]):
+                        print("[web_search] Blocked by DuckDuckGo CAPTCHA/Rate Limit, bypassing fallback search to save time.")
+                        primary_success = False
         except Exception as e:
-            print(f"[web_search] Primary search error: {e}")
+            print(f"[web_search] Primary search error/timeout: {e}")
 
-        # Fallback: try without VIT AP suffix
-        if search_query != query:
+        # Fallback search: ONLY try if the primary query succeeded cleanly but yielded 0 results.
+        # If the first request timed out or was blocked, the second request will also time out/fail.
+        if primary_success and search_query != query:
             try:
                 resp = await client.get(ddg_url, params={"q": query}, headers=headers)
                 if resp.status_code == 200:
