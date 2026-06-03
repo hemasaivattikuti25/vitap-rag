@@ -104,7 +104,82 @@ def _parse_ddg_html(html_text: str, max_results: int) -> List[Dict[str, str]]:
     return results
 
 
-async def web_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
+def decode_yahoo_url(url: str) -> str:
+    """Extract and decode target URL from Yahoo search redirect link."""
+    if "RU=" in url:
+        import re
+        match = re.search(r"RU=([^/]+)", url)
+        if match:
+            encoded_url = match.group(1)
+            import urllib.parse
+            return urllib.parse.unquote(encoded_url)
+    return url
+
+
+async def yahoo_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
+    """Search Yahoo Search and return list of parsed results."""
+    keyword_query = clean_search_query(query)
+    search_query = keyword_query
+    
+    if not check_is_general(query) and "vit" not in keyword_query.lower():
+        search_query = f"{keyword_query} VIT AP"
+        
+    print(f"[yahoo_search] Searching: '{search_query}' (original: '{query}')")
+    
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+    yahoo_url = "https://search.yahoo.com/search"
+    
+    results = []
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get(yahoo_url, params={"p": search_query}, headers=headers)
+            if resp.status_code == 200:
+                soup = BeautifulSoup(resp.text, "html.parser")
+                comp_texts = soup.find_all("div", class_="compText")
+                for div in comp_texts[:max_results + 3]:
+                    parent = div.parent
+                    if not parent:
+                        continue
+                    link_a = parent.find("a")
+                    if not link_a:
+                        continue
+                        
+                    title = link_a.get_text(strip=True)
+                    raw_href = link_a.get("href", "")
+                    href = decode_yahoo_url(raw_href)
+                    snippet = div.get_text(strip=True)
+                    
+                    if not href or not title:
+                        continue
+                        
+                    # Filter out Yahoo internal links and forums
+                    lower_href = href.lower()
+                    if "yahoo.com" in lower_href or "yahoo.co" in lower_href:
+                        continue
+                    if "reddit.com" in lower_href or "quora.com" in lower_href:
+                        continue
+                        
+                    results.append({
+                        "title": title,
+                        "content": snippet,
+                        "source_url": href
+                    })
+                    if len(results) >= max_results:
+                        break
+    except Exception as e:
+        print(f"[yahoo_search] Search error: {e}")
+        
+    print(f"[yahoo_search] Found {len(results)} results")
+    return results
+
+
+async def ddg_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
     """
     Async search DuckDuckGo HTML and return a list of result dicts.
     Fully non-blocking — uses httpx.AsyncClient so FastAPI event loop is never stalled.
@@ -116,7 +191,7 @@ async def web_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
     if not check_is_general(query) and "vit" not in keyword_query.lower():
         search_query = f"{keyword_query} VIT AP"
 
-    print(f"[web_search] Searching: '{search_query}' (original: '{query}')")
+    print(f"[ddg_search] Searching: '{search_query}' (original: '{query}')")
 
     headers = {
         "User-Agent": (
@@ -136,16 +211,16 @@ async def web_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
                 primary_success = True
                 results = _parse_ddg_html(resp.text, max_results)
                 if results:
-                    print(f"[web_search] Found {len(results)} results")
+                    print(f"[ddg_search] Found {len(results)} results")
                     return results
                 else:
                     # Check if we were rate limited / CAPTCHAd
                     lowered_text = resp.text.lower()
                     if any(kw in lowered_text for kw in ["captcha", "robot", "forbidden", "check your browser"]):
-                        print("[web_search] Blocked by DuckDuckGo CAPTCHA/Rate Limit, bypassing fallback search to save time.")
+                        print("[ddg_search] Blocked by DuckDuckGo CAPTCHA/Rate Limit, bypassing fallback search to save time.")
                         primary_success = False
         except Exception as e:
-            print(f"[web_search] Primary search error/timeout: {e}")
+            print(f"[ddg_search] Primary search error/timeout: {e}")
 
         # Fallback search: ONLY try if the primary query succeeded cleanly but yielded 0 results.
         # If the first request timed out or was blocked, the second request will also time out/fail.
@@ -154,10 +229,21 @@ async def web_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
                 resp = await client.get(ddg_url, params={"q": query}, headers=headers)
                 if resp.status_code == 200:
                     results = _parse_ddg_html(resp.text, max_results)
-                    print(f"[web_search] Fallback found {len(results)} results")
+                    print(f"[ddg_search] Fallback found {len(results)} results")
                     return results
             except Exception as e2:
-                print(f"[web_search] Fallback search error: {e2}")
+                print(f"[ddg_search] Fallback search error: {e2}")
 
-    print("[web_search] Found 0 results")
+    print("[ddg_search] Found 0 results")
     return []
+
+
+async def web_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
+    """
+    Search DuckDuckGo and fallback to Yahoo Search if DDG is blocked.
+    """
+    results = await ddg_search(query, max_results)
+    if not results:
+        print("[web_search] DuckDuckGo yielded 0 results. Falling back to Yahoo Search...")
+        results = await yahoo_search(query, max_results)
+    return results
