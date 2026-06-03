@@ -53,26 +53,57 @@ def is_false_positive(query: str, doc_content: str, doc_title: str) -> bool:
     q = query.lower().strip()
     c = (doc_content + " " + doc_title).lower()
     
-    # Placements query vs non-placement doc
+    # 1. Placements query vs non-placement doc
     if any(w in q for w in ["placement", "cdc", "job", "salary", "placed", "recruit", "career", "super dream"]):
         if not any(w in c for w in ["placement", "cdc", "job", "salary", "placed", "recruit", "career", "super dream", "offer", "company"]):
             return True
             
-    # Fee query vs non-fee doc
+    # 2. Fee query vs non-fee doc
     if any(w in q for w in ["fee", "fees", "cost", "price", "tuition", "scholarship"]):
         if not any(w in c for w in ["fee", "fees", "cost", "price", "tuition", "scholarship", "rupees", "lakh", "paid"]):
             return True
             
-    # Hostel query vs non-hostel doc
-    if any(w in q for w in ["hostel", "hostels", "mess", "room", "laundry", "canteen"]):
-        if not any(w in c for w in ["hostel", "hostels", "mess", "room", "laundry", "canteen", "accommodation", "warden"]):
+    # 3. Hostel query vs non-hostel doc
+    if any(w in q for w in ["hostel", "hostels", "mess", "room", "laundry", "canteen", "mh1", "mh2", "mh3", "mh4", "mh5", "lh1", "lh2"]):
+        if not any(w in c for w in ["hostel", "hostels", "mess", "room", "laundry", "canteen", "accommodation", "warden", "mh1", "mh2", "mh3", "mh4", "mh5", "lh1", "lh2"]):
             return True
             
-    # Sports query vs non-sports doc
+    # 4. Sports query vs non-sports doc
     if any(w in q for w in ["sport", "sports", "gym", "game", "badminton", "cricket"]):
         if not any(w in c for w in ["sport", "sports", "gym", "game", "badminton", "cricket", "court", "fitness"]):
             return True
-            
+
+    # 5. Clubs/Chapters query vs non-club doc
+    if any(w in q for w in ["club", "clubs", "chapter", "chapters", "ieee", "acm", "announcement"]):
+        if not any(w in c for w in ["club", "clubs", "chapter", "chapters", "ieee", "acm", "membership", "activity"]):
+            return True
+
+    # 6. Abbreviation matching:
+    # If the user asks about a specific abbreviation, the document MUST contain that abbreviation or its expanded form.
+    abbreviations = {
+        "ab1": ["ab1", "ab-1", "ab 1", "academic block 1", "academic block - 1", "academic block-1"],
+        "ab2": ["ab2", "ab-2", "ab 2", "academic block 2", "academic block - 2", "academic block-2"],
+        "srb": ["srb", "sarvepalli", "radhakrishnan", "central block"],
+        "cdc": ["cdc", "career development"],
+        "mh1": ["mh1", "mh-1", "mh 1", "men's hostel 1", "mens hostel 1"],
+        "mh2": ["mh2", "mh-2", "mh 2", "men's hostel 2", "mens hostel 2"],
+        "mh3": ["mh3", "mh-3", "mh 3", "men's hostel 3", "mens hostel 3"],
+        "mh4": ["mh4", "mh-4", "mh 4", "men's hostel 4", "mens hostel 4"],
+        "mh5": ["mh5", "mh-5", "mh 5", "men's hostel 5", "mens hostel 5"],
+        "lh1": ["lh1", "lh-1", "lh 1", "ladies hostel 1"],
+        "lh2": ["lh2", "lh-2", "lh 2", "ladies hostel 2"],
+    }
+    for abbr, expansions in abbreviations.items():
+        if abbr in q:
+            # If the abbreviation is in the query, but neither the abbreviation nor any expansion is in the document content, it is a false positive
+            if not any(exp in c for exp in expansions):
+                return True
+
+    # 7. General block query vs non-block doc (e.g. clubs or hostels)
+    if any(w in q for w in ["academic block", "academic blocks", "block 1", "block 2", "block-1", "block-2"]):
+        if not any(w in c for w in ["block", "blocks", "academic block", "infrastructure", "srb"]):
+            return True
+
     return False
 
 async def check_relevance(query: str, docs: List[dict]) -> List[dict]:

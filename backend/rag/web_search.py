@@ -28,8 +28,11 @@ def clean_search_query(query: str) -> str:
     cleaned = lower
     for pref in prefixes:
         if cleaned.startswith(pref):
-            cleaned = cleaned[len(pref):].strip()
-            break
+            remaining = cleaned[len(pref):]
+            # Ensure it is a complete word prefix match (followed by space, punctuation, or end of string)
+            if len(remaining) == 0 or remaining[0].isspace() or remaining[0] in ".,!?;:":
+                cleaned = remaining.strip()
+                break
 
     if cleaned.endswith("?"):
         cleaned = cleaned[:-1].strip()
