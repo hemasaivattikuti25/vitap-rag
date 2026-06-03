@@ -16,11 +16,20 @@ export const metadata: Metadata = {
     url: "https://vitap-rag.vercel.app/",
     siteName: "vitap-UniOs",
     type: "website",
+    images: [
+      {
+        url: "https://vitap-rag.vercel.app/logo.png",
+        width: 512,
+        height: 512,
+        alt: "vitap-UniOs Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "vitap-UniOs — VIT-AP Assistant",
     description: "Your intelligent campus assistant for VIT-AP University",
+    images: ["https://vitap-rag.vercel.app/logo.png"],
   },
 };
 
