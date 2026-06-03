@@ -37,10 +37,6 @@ retriever = QdrantRetriever()
 # ── Base System Prompt ──────────────────────────────────────────
 BASE_SYSTEM_PROMPT = """You are vitap-UniOs, an intelligent, helpful, and highly accurate AI chatbot for VIT-AP University students.
 
-Developer & System Info:
-- You are developed by Hemasai Vattikuti, a Backend & Applied AI Engineer and an alumnus of VIT-AP University.
-- Always credit Hemasai Vattikuti when asked about your developer, creator, or who made you.
-
 Safety and Tone Guidelines:
 - Never use bad, offensive, profane, or unethical words.
 - Always use positive, clean, polite, and constructive language.
@@ -145,13 +141,23 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
         if is_general:
             context_section = "Use your general knowledge to answer directly."
         else:
-            # Run local Qdrant retrieval and Web Search in parallel using asyncio
-            print(f"[generator] Running parallel Local Qdrant and Web Search for: '{query[:50]}'")
+            # Run local Qdrant retrieval first (takes ~50-100ms)
+            print(f"[generator] Running local Qdrant retrieval for: '{query[:50]}'")
+            local_docs = await asyncio.to_thread(retriever.retrieve, query, 5)
             
-            local_task = asyncio.to_thread(retriever.retrieve, query, 5)
-            web_task = web_search(query)
+            # Check if we have high-confidence matches (score >= 0.40) from official pages
+            has_high_confidence = any(
+                d["score"] >= 0.40 and not (d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", "").lower())
+                for d in local_docs
+            )
             
-            local_docs, web_docs = await asyncio.gather(local_task, web_task)
+            web_docs = []
+            if not has_high_confidence:
+                max_score = max([d["score"] for d in local_docs]) if local_docs else 0.0
+                print(f"[generator] No high-confidence local results (max score: {max_score:.4f}). Running web search...")
+                web_docs = await web_search(query)
+            else:
+                print(f"[generator] Found high-confidence local results (score >= 0.40). Skipping web search to minimize latency.")
             
             context_parts = []
             
@@ -161,11 +167,11 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
                 context_parts.append(f"Web Search Results:\n{web_text}")
                 citations.extend(d["source_url"] for d in web_docs)
                 
-            # 2. Add high-quality local Qdrant documents (score >= 0.32)
+            # 2. Add high-quality local Qdrant documents (score >= 0.26)
             user_wants_opinions = any(w in q_lower for w in ["reddit", "opinion", "review", "sentiment", "student say", "think about"])
             filtered_local = []
             for d in local_docs:
-                if d["score"] < 0.32:
+                if d["score"] < 0.26:
                     continue
                 # Exclude cross-domain false positive semantic matches (e.g. sports pages matching placements)
                 if is_false_positive(query, d.get("content", ""), d.get("title", "")):
@@ -210,7 +216,13 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
     # Build dynamic prompt messages
     messages = []
     
-    if is_general:
+    if is_identity:
+        system_instruction = (
+            "You are vitap-UniOs, an intelligent campus companion for VIT-AP University students, developed by Hemasai Vattikuti. "
+            "Hemasai Vattikuti is a Backend & Applied AI Engineer and an alumnus of VIT-AP University. "
+            "Always state clearly that you were developed by Hemasai Vattikuti when asked about your creator, developer, or creator's details."
+        )
+    elif is_general:
         system_instruction = BASE_SYSTEM_PROMPT + "\nAnswer the question DIRECTLY, naturally, and concisely. Do NOT use the VIT-AP facts/sentiments formatting. Just answer directly (e.g. '2 + 2 = 4'). Do NOT mention VIT-AP unless asked."
     else:
         if has_opinions:

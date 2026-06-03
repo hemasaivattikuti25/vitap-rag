@@ -7,7 +7,7 @@ Usage:
     python rebuild_index.py [--force]   # --force re-scrapes even if cache exists
 """
 
-import os, sys, json, time, asyncio, argparse
+import os, sys, json, time, asyncio, argparse, urllib.parse
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -101,7 +101,10 @@ async def scrape_with_playwright(pages: list) -> list[dict]:
                         // Helper to add a chunk
                         function addChunk(title, content) {
                             content = content.replace(/\\s+/g, ' ').trim();
-                            if (content.length > 50) {
+                            if (content.length < 30 && content.toLowerCase().includes("explore")) {
+                                content = "Explore and find details about " + title + " at VIT-AP University.";
+                            }
+                            if (content.length > 20 || (title.length > 15 && content.length > 5)) {
                                 chunks.push({
                                     title: title.slice(0, 150),
                                     content: content.slice(0, 1500),
@@ -188,6 +191,65 @@ async def scrape_with_playwright(pages: list) -> list[dict]:
                         return chunks;
                     }
                 """)
+
+                if category == "clubs":
+                    try:
+                        tabs = ["Technical", "Non-technical", "Regional Club & Chapters", "Professional Club", "Social Outreach Club"]
+                        clubs_by_category = {}
+                        all_scraped_names = []
+                        
+                        for tab in tabs:
+                            button_selector = f'button:has-text("{tab}")'
+                            if await page.locator(button_selector).count() > 0:
+                                await page.click(button_selector)
+                                await page.wait_for_timeout(1000)
+                                
+                                links = await page.locator('a[href*="/clubs-and-chapters/"]').all_inner_texts()
+                                clubs_list = []
+                                for text in links:
+                                    name = text.strip()
+                                    if name and name not in clubs_list and len(name) > 2:
+                                        clubs_list.append(name)
+                                        if name not in all_scraped_names:
+                                            all_scraped_names.append(name)
+                                clubs_by_category[tab] = clubs_list
+                                
+                        for tab, clubs in clubs_by_category.items():
+                            if clubs:
+                                page_chunks.append({
+                                    "title": f"Clubs & Chapters at VIT-AP - {tab}",
+                                    "content": f"The following {tab.lower()} clubs and chapters are active at VIT-AP: " + ", ".join(clubs) + ".",
+                                    "source_url": url,
+                                    "category": category
+                                })
+                                
+                        complete_content = (
+                            "VIT-AP University features an array of clubs and chapters that offer a life beyond academics. "
+                            "There are more than 70 clubs in the university. Here is the list of active clubs and chapters:\n\n"
+                        )
+                        for tab, clubs in clubs_by_category.items():
+                            if clubs:
+                                complete_content += f"• {tab}: " + ", ".join(clubs) + "\n"
+                        complete_content += "\nThese clubs provide a recreational space to explore creativity, make new friendships, engage in collaborative work, relax, and socialise."
+                        
+                        page_chunks.append({
+                            "title": "Clubs and Chapters at VIT-AP - Comprehensive List",
+                            "content": complete_content,
+                            "source_url": url,
+                            "category": category
+                        })
+                        
+                        for tab, clubs in clubs_by_category.items():
+                            for club in clubs:
+                                page_chunks.append({
+                                    "title": f"{club} (Club at VIT-AP)",
+                                    "content": f"{club} is an active {tab.lower()} club / chapter at VIT-AP University. Various club activities help develop crucial skillsets comprising team-work, leadership, and event management.",
+                                    "source_url": f"{url.rstrip('/')}/{urllib.parse.quote(club)}",
+                                    "category": category
+                                })
+                        print(f"    ✓ Dynamically scraped {len(all_scraped_names)} clubs -> {len(page_chunks)} chunks total")
+                    except Exception as te:
+                        print(f"    ✗ Dynamic club scraping failed: {te}")
 
                 if page_chunks:
                     chunks.extend(page_chunks)

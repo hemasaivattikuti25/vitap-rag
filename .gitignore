@@ -49,3 +49,8 @@ npm-debug.log*
 
 # Vercel
 .vercel
+
+# Scraper Temp Files
+raw_clubs.html
+all_scraped_clubs.json
+all_scraped_schools.json
