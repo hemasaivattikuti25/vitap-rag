@@ -99,6 +99,14 @@ def _parse_ddg_html(html_text: str, max_results: int) -> List[Dict[str, str]]:
         if "reddit.com" in lower_href or "quora.com" in lower_href:
             continue
             
+        # Ensure we stay strictly in the context of VIT-AP and exclude other VIT campuses (Vellore, Chennai, Bhopal)
+        if "vit.ac.in" in lower_href and "vitap.ac.in" not in lower_href:
+            continue
+        if "vitbhopal.ac.in" in lower_href:
+            continue
+        if any(campus in lower_href for campus in ["vellore", "chennai", "bhopal"]) and not any(ap in lower_href for ap in ["vitap", "vit-ap"]):
+            continue
+            
         if title or snippet:
             results.append({"title": title, "content": snippet, "source_url": href})
     return results
@@ -163,6 +171,14 @@ async def yahoo_search(query: str, max_results: int = 4) -> List[Dict[str, str]]
                     if "yahoo.com" in lower_href or "yahoo.co" in lower_href:
                         continue
                     if "reddit.com" in lower_href or "quora.com" in lower_href:
+                        continue
+                        
+                    # Ensure we stay strictly in the context of VIT-AP and exclude other VIT campuses (Vellore, Chennai, Bhopal)
+                    if "vit.ac.in" in lower_href and "vitap.ac.in" not in lower_href:
+                        continue
+                    if "vitbhopal.ac.in" in lower_href:
+                        continue
+                    if any(campus in lower_href for campus in ["vellore", "chennai", "bhopal"]) and not any(ap in lower_href for ap in ["vitap", "vit-ap"]):
                         continue
                         
                     results.append({
