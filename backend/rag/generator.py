@@ -75,6 +75,57 @@ def is_false_positive(query: str, doc_content: str, doc_title: str) -> bool:
             
     return False
 
+async def check_relevance(query: str, docs: List[dict]) -> List[dict]:
+    """
+    Check retrieved documents against user query using a fast LLM pass to filter out false positives.
+    """
+    if not docs or not _groq_client:
+        return docs
+
+    doc_entries = []
+    for i, doc in enumerate(docs):
+        # Limit content length to save tokens and keep it fast
+        content_snippet = doc.get("content", "")[:350]
+        title = doc.get("title", "")
+        doc_entries.append(f"Document {i}:\nTitle: {title}\nContent: {content_snippet}")
+
+    docs_text = "\n\n".join(doc_entries)
+    
+    prompt = f"""You are a precise search relevance filter.
+Evaluate if the following retrieved documents contain information relevant to answering the User Query.
+A document is relevant only if it directly addresses the query's topic or contains information that can help answer it.
+If a document is about a completely different topic (e.g. query is about academic blocks, but document is about hostels/mess), it is NOT relevant.
+
+User Query: "{query}"
+
+Retrieved Documents:
+{docs_text}
+
+Respond with a JSON list containing the indices of the relevant documents (e.g., [0, 2] or []). Do not include any explanations, markdown code blocks, or extra text. Output ONLY the JSON list."""
+
+    try:
+        completion = await _groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=30,
+            temperature=0.0,
+            timeout=4.0
+        )
+        resp_text = completion.choices[0].message.content.strip()
+        
+        # Strip markdown code blocks if the model wrapped it in ```json ... ```
+        if "```" in resp_text:
+            resp_text = resp_text.split("```")[1]
+            if resp_text.startswith("json"):
+                resp_text = resp_text[4:]
+        
+        indices = json.loads(resp_text.strip())
+        if isinstance(indices, list):
+            return [docs[idx] for idx in indices if isinstance(idx, int) and 0 <= idx < len(docs)]
+    except Exception as e:
+        print(f"[generator] Relevance check failed: {e}. Falling back to original documents.")
+    return docs
+
 async def generate_answer_stream(query: str, history: Optional[List[dict]] = None):
     """
     Generate response token by token in SSE format.
@@ -150,15 +201,41 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
             print(f"[generator] Running local Qdrant retrieval for: '{query[:50]}'")
             local_docs = await asyncio.to_thread(retriever.retrieve, query, 5)
             
+            # Pre-filter local docs for base score and structural false positives
+            user_wants_opinions = any(w in q_lower for w in ["reddit", "opinion", "review", "sentiment", "student say", "think about"])
+            candidates = []
+            for d in local_docs:
+                if d["score"] < 0.26:
+                    continue
+                # Exclude cross-domain false positive semantic matches (e.g. sports pages matching placements)
+                if is_false_positive(query, d.get("content", ""), d.get("title", "")):
+                    print(f"[generator] Excluding false positive local chunk '{d['title']}' for query '{query[:30]}'")
+                    continue
+                is_opinion_source = d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", "").lower()
+                # Exclude student opinions/Reddit comments for general factual queries
+                if is_opinion_source and not user_wants_opinions:
+                    print(f"[generator] Excluding local opinion chunk '{d['title']}' to ensure factual accuracy.")
+                    continue
+                candidates.append(d)
+
+            # Check relevance of candidates using fast LLM filter
+            relevant_local = []
+            if candidates:
+                print(f"[generator] Running LLM relevance filter on {len(candidates)} candidates...")
+                relevant_local = await check_relevance(query, candidates)
+                print(f"[generator] LLM relevance filter kept {len(relevant_local)} of {len(candidates)} candidates.")
+            else:
+                print(f"[generator] No candidate documents to filter.")
+
             # Check if we have high-confidence matches (score >= 0.40) from official pages
             has_high_confidence = any(
                 d["score"] >= 0.40 and not (d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", "").lower())
-                for d in local_docs
+                for d in relevant_local
             )
             
             web_docs = []
             if not has_high_confidence:
-                max_score = max([d["score"] for d in local_docs]) if local_docs else 0.0
+                max_score = max([d["score"] for d in relevant_local]) if relevant_local else 0.0
                 print(f"[generator] No high-confidence local results (max score: {max_score:.4f}). Running web search...")
                 web_docs = await web_search(query)
             else:
@@ -172,27 +249,11 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
                 context_parts.append(f"Web Search Results:\n{web_text}")
                 citations.extend(d["source_url"] for d in web_docs)
                 
-            # 2. Add high-quality local Qdrant documents (score >= 0.26)
-            user_wants_opinions = any(w in q_lower for w in ["reddit", "opinion", "review", "sentiment", "student say", "think about"])
-            filtered_local = []
-            for d in local_docs:
-                if d["score"] < 0.26:
-                    continue
-                # Exclude cross-domain false positive semantic matches (e.g. sports pages matching placements)
-                if is_false_positive(query, d.get("content", ""), d.get("title", "")):
-                    print(f"[generator] Excluding false positive local chunk '{d['title']}' for query '{query[:30]}'")
-                    continue
-                is_opinion_source = d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", "").lower()
-                # Exclude student opinions/Reddit comments for general factual queries
-                if is_opinion_source and not user_wants_opinions:
-                    print(f"[generator] Excluding local opinion chunk '{d['title']}' to ensure factual accuracy.")
-                    continue
-                filtered_local.append(d)
-
-            if filtered_local:
+            # 2. Add verified relevant local Qdrant documents
+            if relevant_local:
                 official_info = []
                 student_opinions = []
-                for d in filtered_local:
+                for d in relevant_local:
                     if d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", ""):
                         student_opinions.append(d)
                     else:
@@ -206,7 +267,7 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
                     context_parts.append(f"Student Opinions & Reviews:\n{op_text}")
                     has_opinions = True
                     
-                citations.extend(d["source_url"] for d in filtered_local if d.get("source_url"))
+                citations.extend(d["source_url"] for d in relevant_local if d.get("source_url"))
                 
             # Remove duplicate citations
             citations = list(set(citations))
