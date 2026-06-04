@@ -1,4 +1,4 @@
-# 🌌 vitap-UniOs — Campus Platform for VIT-AP
+#  vitap-UniOs — Campus Platform for VIT-AP
 
 <p align="center">
   <img src="frontend/public/logo.png" alt="vitap-UniOs Logo" width="100" height="100" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
