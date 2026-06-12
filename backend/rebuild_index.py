@@ -41,7 +41,13 @@ PAGES = [
     ("https://vitap.ac.in/contact-us/",               "contact"),
     ("https://vitap.ac.in/fees-and-scholarships/",    "fees"),
     ("https://vitap.ac.in/hostels/",                  "hostel"),
-    ("https://vitap.ac.in/career-development-cell/",  "placements"),
+    # Career Development Centre (CDC) pages — fixed from 404 /career-development-cell/
+    ("https://vitap.ac.in/cdc-statistics",            "placements"),
+    ("https://vitap.ac.in/cdc-overview",              "placements"),
+    ("https://vitap.ac.in/cdc-superdream",            "placements"),
+    ("https://vitap.ac.in/cdc-dream",                 "placements"),
+    ("https://vitap.ac.in/internships",               "placements"),
+    ("https://vitap.ac.in/industrial-collaboration",  "placements"),
 ]
 
 
