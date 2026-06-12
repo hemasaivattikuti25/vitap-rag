@@ -41,7 +41,7 @@ def main():
         "contact": "https://vitap.ac.in/contact-us/",
         "fees": "https://vitap.ac.in/fees-and-scholarships/",
         "hostel": "https://vitap.ac.in/hostels/",
-        "placements": "https://vitap.ac.in/career-development-cell/",
+        "placements": "https://vitap.ac.in/cdc-statistics",  # fixed: was 404
     }
 
     content_map = {}
@@ -140,9 +140,12 @@ def main():
         client.upsert(collection_name=COLLECTION, points=points)
 
     # 7. Also upload official B.Tech fees as a high priority point
-    # Run the add_official_facts_to_qdrant main logic here to make sure it's present
     from add_official_facts_to_qdrant import main as add_fees_main
     add_fees_main()
+
+    # 8. Upload verified placement facts (₹93 LPA highest package etc.)
+    from add_placement_facts_to_qdrant import main as add_placement_main
+    add_placement_main()
 
     count = client.count(COLLECTION).count
     print(f"Done! {count} vectors indexed in '{COLLECTION}'")

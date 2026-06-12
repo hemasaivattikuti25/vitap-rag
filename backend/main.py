@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import sys
 import os
+import datetime
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from api.routes import router
@@ -22,76 +23,131 @@ app.add_middleware(
 
 app.include_router(router, prefix="/api")
 
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+IST_OFFSET = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+
+
+def _seconds_until_midnight_ist() -> float:
+    """Seconds from now until next midnight IST (00:00:00)."""
+    now_ist = datetime.datetime.now(IST_OFFSET)
+    tomorrow = (now_ist + datetime.timedelta(days=1)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    return (tomorrow - now_ist).total_seconds()
+
+
+async def _run_step(name: str, *cmd: str) -> bool:
+    """Run a subprocess step, stream output, return True on success."""
+    print(f"[pipeline] ▶ {name} ...")
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
+        cwd=BACKEND_DIR,
+    )
+    async for line in proc.stdout:
+        print(f"[pipeline]   {line.decode().rstrip()}")
+    await proc.wait()
+    ok = proc.returncode == 0
+    print(f"[pipeline] {'✅' if ok else '❌'} {name} done (exit={proc.returncode})")
+    return ok
+
+
+async def run_full_rebuild():
+    """
+    Full 5-step rebuild pipeline:
+      1. Scrape all VIT-AP pages with Playwright
+      2. Remove boilerplate + embed + index into Qdrant
+         (also auto-injects fees & placement facts at end)
+      3. Restore faculty profiles
+    """
+    print("[pipeline] ═══════════════════════════════════════════")
+    print("[pipeline]  VIT-AP Full Index Rebuild — START")
+    print(f"[pipeline]  Time (IST): {datetime.datetime.now(IST_OFFSET).isoformat()}")
+    print("[pipeline] ═══════════════════════════════════════════")
+
+    ok1 = await _run_step(
+        "Step 1/3 — Scrape VIT-AP website (Playwright)",
+        sys.executable, "rebuild_index.py", "--force",
+    )
+    if not ok1:
+        print("[pipeline] ⚠ Scrape failed — aborting rebuild.")
+        return
+
+    ok2 = await _run_step(
+        "Step 2/3 — Deduplicate + embed + index (+ fees & placement facts)",
+        sys.executable, "remove_boilerplate.py",
+    )
+    if not ok2:
+        print("[pipeline] ⚠ Boilerplate/index step failed — still trying faculty...")
+
+    ok3 = await _run_step(
+        "Step 3/3 — Restore faculty profiles",
+        sys.executable, "reprocess_faculty_cache.py",
+    )
+
+    print("[pipeline] ═══════════════════════════════════════════")
+    print(f"[pipeline]  Rebuild {'COMPLETE ✅' if (ok1 and ok2 and ok3) else 'PARTIAL ⚠'}")
+    print(f"[pipeline]  Time (IST): {datetime.datetime.now(IST_OFFSET).isoformat()}")
+    print("[pipeline] ═══════════════════════════════════════════")
+
+
+async def _midnight_rebuild_loop():
+    """
+    Waits until next midnight IST, then runs the full rebuild pipeline
+    every 24 hours — automatic, no manual work needed.
+    """
+    wait = _seconds_until_midnight_ist()
+    next_run = datetime.datetime.now(IST_OFFSET) + datetime.timedelta(seconds=wait)
+    print(f"[scheduler] ⏰ First rebuild scheduled at midnight IST → {next_run.strftime('%Y-%m-%d %H:%M IST')}")
+    print(f"[scheduler]    (sleeping {wait/3600:.1f} hours)")
+
+    await asyncio.sleep(wait)
+
+    while True:
+        await run_full_rebuild()
+        # Sleep exactly 24 hours for subsequent runs
+        await asyncio.sleep(24 * 60 * 60)
+
+
+async def _feed_refresh_loop():
+    """Refresh news/events feed every 30 minutes."""
+    await asyncio.sleep(3)  # let server boot
+    from db.feed_store import feed_store
+    while True:
+        try:
+            print("[feed] Refreshing news/events feed...")
+            await feed_store._refresh()
+            print("[feed] Feed refresh complete.")
+        except Exception as e:
+            print(f"[feed] Error: {e}")
+        await asyncio.sleep(30 * 60)
+
 
 @app.on_event("startup")
 async def startup_event():
-    """Kick off periodic background tasks on startup."""
-    async def _init_feed():
-        # Wait 3s for the server to fully start before crawling
-        await asyncio.sleep(3)
-        from db.feed_store import feed_store
-        
-        while True:
-            try:
-                print("[main] Starting periodic background feed crawl...")
-                await feed_store._refresh()
-                print("[main] Background feed crawl completed successfully.")
-            except Exception as e:
-                print(f"[main] Error during background feed crawl: {e}")
-            
-            # Sleep 30 minutes before next crawl
-            await asyncio.sleep(30 * 60)
-
-    async def _init_index_rebuild():
-        # Wait 20s for the server to settle before first background rebuild
-        await asyncio.sleep(20)
-        
-        while True:
-            try:
-                print("[main] Starting periodic background index rebuild...")
-                
-                # 1. Scraping latest data
-                print("[main] [Rebuild] Scraping live website...")
-                p1 = await asyncio.create_subprocess_exec(
-                    sys.executable, "rebuild_index.py", "--force",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    cwd=os.path.dirname(os.path.abspath(__file__))
-                )
-                await p1.communicate()
-                
-                # 2. Filtering boilerplate and indexing main chunks
-                print("[main] [Rebuild] Removing boilerplate & indexing main chunks...")
-                p2 = await asyncio.create_subprocess_exec(
-                    sys.executable, "remove_boilerplate.py",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    cwd=os.path.dirname(os.path.abspath(__file__))
-                )
-                await p2.communicate()
-                
-                # 3. Reloading and restoring faculty profiles
-                print("[main] [Rebuild] Restoring faculty profiles to index...")
-                p3 = await asyncio.create_subprocess_exec(
-                    sys.executable, "reprocess_faculty_cache.py",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    cwd=os.path.dirname(os.path.abspath(__file__))
-                )
-                await p3.communicate()
-                
-                print("[main] Background index rebuild completed successfully.")
-            except Exception as e:
-                print(f"[main] Error during background index rebuild: {e}")
-            
-            # Sleep 12 hours before rebuilding again
-            await asyncio.sleep(12 * 60 * 60)
-
-    asyncio.create_task(_init_feed())
-    asyncio.create_task(_init_index_rebuild())
-    print("[main] vitap-UniOs API started. Background feed refresh and index rebuild loops scheduled.")
+    asyncio.create_task(_feed_refresh_loop())
+    asyncio.create_task(_midnight_rebuild_loop())
+    nxt = datetime.datetime.now(IST_OFFSET) + datetime.timedelta(
+        seconds=_seconds_until_midnight_ist()
+    )
+    print(
+        "[main] vitap-UniOs API v2 started.\n"
+        f"[main] Auto-rebuild: every midnight IST (next: {nxt.strftime('%Y-%m-%d %H:%M IST')})\n"
+        "[main] Feed refresh: every 30 minutes."
+    )
 
 
 @app.get("/")
 def read_root():
     return {"message": "vitap-UniOs API v2 — Campus Platform for VIT-AP"}
+
+
+@app.post("/api/admin/rebuild")
+async def trigger_rebuild():
+    """
+    Manual trigger endpoint — POST /api/admin/rebuild
+    Kicks off the full pipeline in the background immediately.
+    """
+    asyncio.create_task(run_full_rebuild())
+    return {"status": "rebuild started", "message": "Full index rebuild triggered manually."}
