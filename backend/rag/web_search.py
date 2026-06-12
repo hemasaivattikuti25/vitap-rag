@@ -148,7 +148,7 @@ async def yahoo_search(query: str, max_results: int = 4) -> List[Dict[str, str]]
     
     results = []
     try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=1.5) as client:
             resp = await client.get(yahoo_url, params={"p": search_query}, headers=headers)
             if resp.status_code == 200:
                 soup = BeautifulSoup(resp.text, "html.parser")
@@ -201,7 +201,7 @@ async def yahoo_search(query: str, max_results: int = 4) -> List[Dict[str, str]]
 async def ddg_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
     """
     Async search DuckDuckGo HTML and return a list of result dicts.
-    Fully non-blocking — uses httpx.AsyncClient so FastAPI event loop is never stalled.
+    Tight 1.5s timeout.
     """
     keyword_query = clean_search_query(query)
     search_query = keyword_query
@@ -221,37 +221,16 @@ async def ddg_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
     }
     ddg_url = "https://html.duckduckgo.com/html/"
 
-    # Use a much lower timeout (2.5s) to avoid stalling the chatbot on failures
-    async with httpx.AsyncClient(timeout=2.5) as client:
-        primary_success = False
+    async with httpx.AsyncClient(timeout=1.5) as client:
         try:
             resp = await client.get(ddg_url, params={"q": search_query}, headers=headers)
             if resp.status_code == 200:
-                primary_success = True
                 results = _parse_ddg_html(resp.text, max_results)
                 if results:
                     print(f"[ddg_search] Found {len(results)} results")
                     return results
-                else:
-                    # Check if we were rate limited / CAPTCHAd
-                    lowered_text = resp.text.lower()
-                    if any(kw in lowered_text for kw in ["captcha", "robot", "forbidden", "check your browser"]):
-                        print("[ddg_search] Blocked by DuckDuckGo CAPTCHA/Rate Limit, bypassing fallback search to save time.")
-                        primary_success = False
         except Exception as e:
-            print(f"[ddg_search] Primary search error/timeout: {e}")
-
-        # Fallback search: ONLY try if the primary query succeeded cleanly but yielded 0 results.
-        # If the first request timed out or was blocked, the second request will also time out/fail.
-        if primary_success and search_query != query:
-            try:
-                resp = await client.get(ddg_url, params={"q": query}, headers=headers)
-                if resp.status_code == 200:
-                    results = _parse_ddg_html(resp.text, max_results)
-                    print(f"[ddg_search] Fallback found {len(results)} results")
-                    return results
-            except Exception as e2:
-                print(f"[ddg_search] Fallback search error: {e2}")
+            print(f"[ddg_search] Search error/timeout: {e}")
 
     print("[ddg_search] Found 0 results")
     return []
@@ -259,10 +238,19 @@ async def ddg_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
 
 async def web_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
     """
-    Search DuckDuckGo and fallback to Yahoo Search if DDG is blocked.
+    Search DuckDuckGo and Yahoo Search in parallel to minimize latency.
     """
-    results = await ddg_search(query, max_results)
-    if not results:
-        print("[web_search] DuckDuckGo yielded 0 results. Falling back to Yahoo Search...")
-        results = await yahoo_search(query, max_results)
-    return results
+    import asyncio
+    try:
+        tasks = [ddg_search(query, max_results), yahoo_search(query, max_results)]
+        results_list = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        ddg_res = results_list[0] if not isinstance(results_list[0], Exception) else []
+        yahoo_res = results_list[1] if not isinstance(results_list[1], Exception) else []
+        
+        if ddg_res:
+            return ddg_res
+        return yahoo_res
+    except Exception as e:
+        print(f"[web_search] Parallel search error: {e}")
+        return []

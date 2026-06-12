@@ -47,6 +47,19 @@ class QdrantRetriever:
 
         self._embedding_dim = self._detect_collection_dim()
 
+        # 3. Load faculty profiles for exact name matching
+        self.faculty_profiles = []
+        try:
+            import json
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            cache_path = os.path.join(base_dir, "scraped_faculty_profiles.json")
+            if os.path.exists(cache_path):
+                with open(cache_path, "r") as f:
+                    self.faculty_profiles = json.load(f)
+                print(f"[retriever] Loaded {len(self.faculty_profiles)} faculty profiles for exact name matching.")
+        except Exception as e:
+            print(f"[retriever] Failed to load faculty profiles cache: {e}")
+
     def _detect_collection_dim(self) -> int:
         """Check what dimension the existing Qdrant collection uses."""
         try:
@@ -68,21 +81,95 @@ class QdrantRetriever:
         return embeddings[0].tolist()
 
     def retrieve(self, query: str, top_k: int = 4) -> List[dict]:
-        """Retrieve top-k relevant chunks from Qdrant for the query."""
+        """Retrieve top-k relevant chunks from Qdrant/Profiles for the query."""
         try:
-            query_vector = self._embed(query)
+            matched_profiles = []
+            query_lower = query.lower()
 
-            # Use modern query_points API (available in Qdrant 1.18.0)
+            # Normalize query to make split matching robust
+            query_clean = ""
+            for char in query_lower:
+                if char.isalnum() or char.isspace():
+                    query_clean += char
+                else:
+                    query_clean += " "
+            query_words = set(query_clean.split())
+
+            # Check if any faculty member's name is referenced in the query
+            for p in self.faculty_profiles:
+                name = p.get("name", "")
+                if not name or name == "Unknown":
+                    continue
+                
+                name_lower = name.lower()
+                # Remove common titles
+                name_clean = name_lower.replace("dr.", "").replace("prof.", "").replace("mr.", "").replace("ms.", "").strip()
+                
+                # Normalize clean name
+                name_norm = ""
+                for char in name_clean:
+                    if char.isalnum() or char.isspace():
+                        name_norm += char
+                    else:
+                        name_norm += " "
+                
+                # Split and filter out tiny name tokens (like initials)
+                name_words = [w.strip() for w in name_norm.split() if len(w.strip()) > 2]
+                
+                # Check if query mentions this faculty name
+                is_match = False
+                if name_clean and name_clean in query_lower:
+                    is_match = True
+                else:
+                    for w in name_words:
+                        if w in query_words:
+                            is_match = True
+                            break
+                
+                if is_match:
+                    # Strip footer boilerplate to keep chunk text clean and high density
+                    content = p.get("content", "")
+                    markers = [
+                        "“ INDIA should lead",
+                        "“INDIA should lead",
+                        "INDIA should lead the world",
+                        "Quick Links",
+                        "Careers",
+                        "Hostels",
+                        "Transport"
+                    ]
+                    for marker in markers:
+                        if marker in content:
+                            content = content.split(marker)[0].strip()
+                            
+                    text_block = (
+                        f"Faculty Profile: {p['name']}\n"
+                        f"Designation: {p['designation']}\n"
+                        f"School: {p['school']}\n"
+                        f"Specialization: {p['specialization']}\n"
+                        f"Email: {p['email']}\n"
+                        f"Office Address: {p['office_address']}\n"
+                        f"Contact No: {p['contact_no']}\n"
+                        f"Profile Details: {content}"
+                    )
+                    
+                    matched_profiles.append({
+                        "content": text_block,
+                        "source_url": p.get("source_url", ""),
+                        "title": f"Faculty Profile: {p['name']} ({p['designation']})",
+                        "score": 1.0,  # Direct match score
+                    })
+
+            # Run vector search
+            query_vector = self._embed(query)
             response = self.client.query_points(
                 collection_name=self.collection_name,
                 query=query_vector,
                 limit=top_k,
             )
-
-            # query_points returns a QueryResponse which contains a list of points
             results_raw = response.points if hasattr(response, "points") else response
-
-            return [
+            
+            vector_results = [
                 {
                     "content":    hit.payload.get("content", ""),
                     "source_url": hit.payload.get("source_url", ""),
@@ -91,6 +178,21 @@ class QdrantRetriever:
                 }
                 for hit in results_raw
             ]
+
+            # Merge matched profiles and vector results, preserving exact matches first
+            combined = []
+            seen_urls = set()
+            
+            for mp in matched_profiles:
+                combined.append(mp)
+                seen_urls.add(mp["source_url"])
+                
+            for vr in vector_results:
+                if vr["source_url"] not in seen_urls:
+                    combined.append(vr)
+                    seen_urls.add(vr["source_url"])
+                    
+            return combined[:top_k]
 
         except Exception as e:
             print(f"[retriever] Error during retrieval: {e}")

@@ -34,6 +34,38 @@ GROQ_MODELS = [
 _groq_client = AsyncGroq(api_key=GROQ_API_KEY) if _HAS_GROQ and GROQ_API_KEY else None
 retriever = QdrantRetriever()
 
+async def classify_query_with_llm(query: str) -> bool:
+    """
+    Use a fast LLM call to classify if the query is general conversation,
+    feedback/critique, or unrelated to VIT-AP details.
+    """
+    if not _groq_client:
+        return False
+        
+    prompt = f"""You are a query classifier for a VIT-AP University campus assistant chatbot.
+Analyze the user's input and classify it into one of these categories:
+1. "FACTUAL": The user is asking a specific factual question about VIT-AP (e.g., about faculty, fees, clubs, placements, hostels, courses, admissions, dates, etc.).
+2. "GENERAL": The user is greeting you, expressing critique/feedback/frustration (e.g. "you do not know anything", "that is wrong", "you are bad", "shut up", "that's incorrect"), making casual remarks, talking about general knowledge topics, math, or generic programming.
+
+User Input: "{query}"
+
+Respond with ONLY the word "GENERAL" or "FACTUAL". Do not include any other text or explanation."""
+
+    try:
+        completion = await _groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=10,
+            temperature=0.0,
+            timeout=3.0
+        )
+        resp_text = completion.choices[0].message.content.strip().upper()
+        print(f"[generator] LLM query classification output: '{resp_text}'")
+        return "GENERAL" in resp_text
+    except Exception as e:
+        print(f"[generator] LLM query classification failed: {e}")
+        return False
+
 # ── Base System Prompt ──────────────────────────────────────────
 BASE_SYSTEM_PROMPT = """You are vitap-UniOs, an intelligent, helpful, and highly accurate AI chatbot for VIT-AP University students.
 
@@ -219,6 +251,8 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
     else:
         # Determine query classification
         is_general = check_is_general(query)
+        if not is_general:
+            is_general = await classify_query_with_llm(query)
         print(f"[generator] Query classified as is_general = {is_general}")
 
     has_opinions = False
@@ -228,9 +262,12 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
         if is_general:
             context_section = "Use your general knowledge to answer directly."
         else:
-            # Run local Qdrant retrieval first (takes ~50-100ms)
-            print(f"[generator] Running local Qdrant retrieval for: '{query[:50]}'")
-            local_docs = await asyncio.to_thread(retriever.retrieve, query, 5)
+            # Run local retrieval and real-time live web search in parallel
+            print(f"[generator] Running local Qdrant retrieval and live web search in parallel for: '{query[:50]}'")
+            local_task = asyncio.to_thread(retriever.retrieve, query, 5)
+            web_task = web_search(query)
+            
+            local_docs, web_docs = await asyncio.gather(local_task, web_task)
             
             # Pre-filter local docs for base score and structural false positives
             user_wants_opinions = any(w in q_lower for w in ["reddit", "opinion", "review", "sentiment", "student say", "think about"])
@@ -252,25 +289,17 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
             # Check relevance of candidates using fast LLM filter
             relevant_local = []
             if candidates:
-                print(f"[generator] Running LLM relevance filter on {len(candidates)} candidates...")
-                relevant_local = await check_relevance(query, candidates)
-                print(f"[generator] LLM relevance filter kept {len(relevant_local)} of {len(candidates)} candidates.")
+                # Bypass the LLM relevance check if we have high-confidence matches (score >= 0.45) to minimize latency
+                high_conf = [c for c in candidates if c.get("score", 0.0) >= 0.45]
+                if high_conf:
+                    print(f"[generator] Found {len(high_conf)} high-confidence candidates (score >= 0.45). Bypassing LLM relevance filter to save latency.")
+                    relevant_local = candidates
+                else:
+                    print(f"[generator] Running LLM relevance filter on {len(candidates)} candidates...")
+                    relevant_local = await check_relevance(query, candidates)
+                    print(f"[generator] LLM relevance filter kept {len(relevant_local)} of {len(candidates)} candidates.")
             else:
                 print(f"[generator] No candidate documents to filter.")
-
-            # Check if we have high-confidence matches (score >= 0.40) from official pages
-            has_high_confidence = any(
-                d["score"] >= 0.40 and not (d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", "").lower())
-                for d in relevant_local
-            )
-            
-            web_docs = []
-            if not has_high_confidence:
-                max_score = max([d["score"] for d in relevant_local]) if relevant_local else 0.0
-                print(f"[generator] No high-confidence local results (max score: {max_score:.4f}). Running web search...")
-                web_docs = await web_search(query)
-            else:
-                print(f"[generator] Found high-confidence local results (score >= 0.40). Skipping web search to minimize latency.")
             
             context_parts = []
             
@@ -320,7 +349,13 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
             "Always state clearly that you were developed by Hemasai Vattikuti when asked about your creator, developer, or creator's details."
         )
     elif is_general:
-        system_instruction = BASE_SYSTEM_PROMPT + "\nAnswer the question DIRECTLY, naturally, and concisely. Do NOT use the VIT-AP facts/sentiments formatting. Just answer directly (e.g. '2 + 2 = 4'). Do NOT mention VIT-AP unless asked."
+        system_instruction = (
+            "You are vitap-UniOs, a friendly chatbot for VIT-AP University. Respond politely to greetings, feedback, or critique. "
+            "If the user criticizes you or says 'you do not know anything' after you just successfully answered a question, "
+            "apologize politely for the confusion, and ask how you can help them with other questions. "
+            "Do not suggest searching for the same information you already provided. "
+            "Do NOT use the VIT-AP facts/sentiments formatting. Just answer directly and naturally. Do NOT mention VIT-AP unless asked."
+        )
     else:
         if has_opinions:
             system_instruction = BASE_SYSTEM_PROMPT + """
@@ -345,7 +380,10 @@ CRITICAL: Do NOT include a section for 'Student Sentiments' or 'Reddit Opinion' 
             if role in ("user", "assistant") and content:
                 messages.append({"role": role, "content": content})
 
-    user_msg = f"{context_section}\n\nStudent's Question: {query}\n\nAnswer:"
+    if is_general:
+        user_msg = query
+    else:
+        user_msg = f"{context_section}\n\nStudent's Question: {query}\n\nAnswer:"
     messages.append({"role": "user", "content": user_msg})
 
     # Try Groq models in fallback order
