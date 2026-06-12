@@ -26,29 +26,91 @@ MODEL_NAME     = "all-MiniLM-L6-v2"
 DIMENSION      = 384
 CACHE_FILE     = "scraped_data_cache.json"
 
-# VIT-AP pages to scrape (verified working URLs)
+# ALL VIT-AP pages to scrape — full coverage of every nav section
 PAGES = [
-    ("https://vitap.ac.in/",                          "general"),
-    ("https://vitap.ac.in/clubs-and-chapters/",       "clubs"),
-    ("https://vitap.ac.in/events/",                   "events"),
-    ("https://vitap.ac.in/news/",                     "news"),
-    ("https://vitap.ac.in/allschools/",               "academics"),
-    ("https://vitap.ac.in/academiccalender/",          "academics"),
-    ("https://vitap.ac.in/academic-research/",        "research"),
-    ("https://vitap.ac.in/sporic/",                   "research"),
-    ("https://vitap.ac.in/international-relations/",  "international"),
-    ("https://vitap.ac.in/sports/",                   "sports"),
-    ("https://vitap.ac.in/contact-us/",               "contact"),
-    ("https://vitap.ac.in/fees-and-scholarships/",    "fees"),
-    ("https://vitap.ac.in/hostels/",                  "hostel"),
-    # Career Development Centre (CDC) pages — fixed from 404 /career-development-cell/
-    ("https://vitap.ac.in/cdc-statistics",            "placements"),
-    ("https://vitap.ac.in/cdc-overview",              "placements"),
-    ("https://vitap.ac.in/cdc-superdream",            "placements"),
-    ("https://vitap.ac.in/cdc-dream",                 "placements"),
-    ("https://vitap.ac.in/internships",               "placements"),
-    ("https://vitap.ac.in/industrial-collaboration",  "placements"),
+    # ── General ────────────────────────────────────────────────
+    ("https://vitap.ac.in/",                            "general"),
+    ("https://vitap.ac.in/contact-us/",                 "contact"),
+    ("https://vitap.ac.in/faq",                         "general"),
+    ("https://vitap.ac.in/advantages",                  "general"),
+
+    # ── About ──────────────────────────────────────────────────
+    ("https://vitap.ac.in/vision-and-mission",          "about"),
+    ("https://vitap.ac.in/leadership",                  "about"),
+    ("https://vitap.ac.in/governance",                  "about"),
+    ("https://vitap.ac.in/policies",                    "about"),
+
+    # ── Admissions ─────────────────────────────────────────────
+    ("https://vitap.ac.in/application-process",         "admissions"),
+    ("https://vitap.ac.in/fees-and-scholarships/",      "fees"),
+    ("https://vitap.ac.in/stars",                       "admissions"),
+    ("https://vitap.ac.in/affidavit",                   "admissions"),
+
+    # ── Academics ──────────────────────────────────────────────
+    ("https://vitap.ac.in/allschools/",                 "academics"),
+    ("https://vitap.ac.in/allschools/SCOPE",            "academics"),
+    ("https://vitap.ac.in/allschools/SENSE",            "academics"),
+    ("https://vitap.ac.in/allschools/SMEC",             "academics"),
+    ("https://vitap.ac.in/allschools/SAS",              "academics"),
+    ("https://vitap.ac.in/allschools/VISH",             "academics"),
+    ("https://vitap.ac.in/allschools/VSL",              "academics"),
+    ("https://vitap.ac.in/allschools/VSB",              "academics"),
+    ("https://vitap.ac.in/allschools/sbst",             "academics"),
+    ("https://vitap.ac.in/academic-council",            "academics"),
+    ("https://vitap.ac.in/allfaculty",                  "academics"),
+    ("https://vitap.ac.in/academiccalender/",           "academics"),
+    ("https://vitap.ac.in/newlibrary",                  "academics"),
+    ("https://vitap.ac.in/ecs",                         "academics"),
+    ("https://vitap.ac.in/vac",                         "academics"),
+    ("https://vitap.ac.in/coe",                         "academics"),
+    ("https://vitap.ac.in/ffcs",                        "academics"),
+    ("https://vitap.ac.in/international-relations/",    "international"),
+
+    # ── Research ───────────────────────────────────────────────
+    ("https://vitap.ac.in/academic-research/",          "research"),
+    ("https://vitap.ac.in/sporic/",                     "research"),
+    ("https://vitap.ac.in/ureprojects",                 "research"),
+    ("https://vitap.ac.in/center-of-excellence",        "research"),
+    ("https://vitap.ac.in/iiec",                        "research"),
+    ("https://vitap.ac.in/vtbif",                       "research"),
+
+    # ── Career Development Centre (CDC) ────────────────────────
+    ("https://vitap.ac.in/cdc-statistics",              "placements"),
+    ("https://vitap.ac.in/cdc-overview",                "placements"),
+    ("https://vitap.ac.in/cdc-superdream",              "placements"),
+    ("https://vitap.ac.in/cdc-dream",                   "placements"),
+    ("https://vitap.ac.in/cdc-office",                  "placements"),
+    ("https://vitap.ac.in/internships",                 "placements"),
+    ("https://vitap.ac.in/industrial-collaboration",    "placements"),
+
+    # ── Campus Life ────────────────────────────────────────────
+    ("https://vitap.ac.in/campuslife",                  "campus_life"),
+    ("https://vitap.ac.in/clubs-and-chapters/",         "clubs"),
+    ("https://vitap.ac.in/celebrations",                "campus_life"),
+    ("https://vitap.ac.in/cafeteria",                   "campus_life"),
+    ("https://vitap.ac.in/sports/",                     "sports"),
+    ("https://vitap.ac.in/gallery",                     "campus_life"),
+    ("https://vitap.ac.in/events/",                     "events"),
+    ("https://vitap.ac.in/news/",                       "news"),
+
+    # ── Facilities ─────────────────────────────────────────────
+    ("https://vitap.ac.in/infrastructure",              "facilities"),
+    ("https://vitap.ac.in/hostels/",                    "hostel"),
+    ("https://vitap.ac.in/labs",                        "facilities"),
+    ("https://vitap.ac.in/bank-and-atm",                "facilities"),
+    ("https://vitap.ac.in/transport",                   "facilities"),
+    ("https://vitap.ac.in/healthcare",                  "facilities"),
+    ("https://vitap.ac.in/guesthouse",                  "facilities"),
+    ("https://vitap.ac.in/facilitiestoemployees",       "facilities"),
+
+    # ── Committees ─────────────────────────────────────────────
+    ("https://vitap.ac.in/vchance",                     "committees"),
+    ("https://vitap.ac.in/arc",                         "committees"),
+    ("https://vitap.ac.in/icc",                         "committees"),
+    ("https://vitap.ac.in/udc",                         "committees"),
+    ("https://vitap.ac.in/grc",                         "committees"),
 ]
+
 
 
 async def scrape_with_playwright(pages: list) -> list[dict]:

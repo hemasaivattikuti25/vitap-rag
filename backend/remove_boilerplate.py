@@ -29,19 +29,32 @@ def main():
     # 1. Detect duplicates (boilerplate text appearing on multiple pages)
     # Group chunks by their content
     PRIMARY_AUTHORITIES = {
-        "clubs": "https://vitap.ac.in/clubs-and-chapters/",
-        "events": "https://vitap.ac.in/events/",
-        "news": "https://vitap.ac.in/news/",
-        "academics": "https://vitap.ac.in/allschools/",
-        "calendar": "https://vitap.ac.in/academiccalender/",
-        "research": "https://vitap.ac.in/academic-research/",
-        "sporic": "https://vitap.ac.in/sporic/",
+        # General
+        "general":       "https://vitap.ac.in/",
+        "contact":       "https://vitap.ac.in/contact-us/",
+        # About
+        "about":         "https://vitap.ac.in/vision-and-mission",
+        # Admissions
+        "admissions":    "https://vitap.ac.in/application-process",
+        "fees":          "https://vitap.ac.in/fees-and-scholarships/",
+        # Academics
+        "academics":     "https://vitap.ac.in/allschools/",
         "international": "https://vitap.ac.in/international-relations/",
-        "sports": "https://vitap.ac.in/sports/",
-        "contact": "https://vitap.ac.in/contact-us/",
-        "fees": "https://vitap.ac.in/fees-and-scholarships/",
-        "hostel": "https://vitap.ac.in/hostels/",
-        "placements": "https://vitap.ac.in/cdc-statistics",  # fixed: was 404
+        # Research
+        "research":      "https://vitap.ac.in/academic-research/",
+        # CDC / Placements
+        "placements":    "https://vitap.ac.in/cdc-statistics",
+        # Campus Life
+        "campus_life":   "https://vitap.ac.in/campuslife",
+        "clubs":         "https://vitap.ac.in/clubs-and-chapters/",
+        "events":        "https://vitap.ac.in/events/",
+        "news":          "https://vitap.ac.in/news/",
+        "sports":        "https://vitap.ac.in/sports/",
+        # Facilities
+        "facilities":    "https://vitap.ac.in/infrastructure",
+        "hostel":        "https://vitap.ac.in/hostels/",
+        # Committees
+        "committees":    "https://vitap.ac.in/vchance",
     }
 
     content_map = {}
