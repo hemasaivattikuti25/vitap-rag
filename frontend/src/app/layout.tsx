@@ -6,9 +6,9 @@ export const metadata: Metadata = {
   description: "Your intelligent campus assistant for VIT-AP University",
   manifest: "/manifest.json",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
   },
   openGraph: {
     title: "vitap-UniOs — VIT-AP Assistant",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://vitap-rag.vercel.app/logo.png",
+        url: "https://vitap-rag.vercel.app/logo.svg",
         width: 512,
         height: 512,
         alt: "vitap-UniOs Logo",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "vitap-UniOs — VIT-AP Assistant",
     description: "Your intelligent campus assistant for VIT-AP University",
-    images: ["https://vitap-rag.vercel.app/logo.png"],
+    images: ["https://vitap-rag.vercel.app/logo.svg"],
   },
 };
 

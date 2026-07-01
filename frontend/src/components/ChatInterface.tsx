@@ -127,7 +127,7 @@ export default function ChatInterface() {
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="vitap-UniOs" width={22} height={22} style={{ borderRadius: 6 }} />
+        <img src="/logo.svg" alt="vitap-UniOs" width={22} height={22} style={{ borderRadius: 6 }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: "#ccc" }}>vitap-UniOs Chat</span>
         <span
           style={{
@@ -184,7 +184,7 @@ export default function ChatInterface() {
             >
               {msg.role === "assistant" ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src="/logo.png" alt="bot" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src="/logo.svg" alt="bot" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <circle cx="7" cy="5" r="2.5" stroke="#888" strokeWidth="1.2" />
@@ -283,7 +283,7 @@ export default function ChatInterface() {
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="bot" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src="/logo.svg" alt="bot" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
               <div style={{ display: "flex", gap: 4, padding: "8px 0" }}>
                 {[0, 160, 320].map((delay) => (

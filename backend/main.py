@@ -19,7 +19,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 BACKEND_DIR    = os.path.dirname(os.path.abspath(__file__))
 IST_OFFSET     = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
 
-# ── Allowed origins (set ALLOWED_ORIGINS env var as comma-separated list) ──
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "")
 ALLOWED_ORIGINS: list[str] = (
     [o.strip() for o in _raw_origins.split(",") if o.strip()]
@@ -29,9 +28,11 @@ ALLOWED_ORIGINS: list[str] = (
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "https://vitap-rag.vercel.app",
     ]
 )
 log.info(f"CORS allowed origins: {ALLOWED_ORIGINS}")
+
 
 
 # ── Pipeline ────────────────────────────────────────────────────────────────
@@ -113,11 +114,40 @@ async def _feed_refresh_loop():
 
 # ── App lifespan (replaces deprecated @app.on_event) ───────────────────────
 
+async def _check_and_initialize_db():
+    await asyncio.sleep(1)  # wait 1s for main startup to finish
+    try:
+        from rag.retriever import QdrantRetriever
+        retriever = QdrantRetriever()
+        
+        # Check if the collection exists and is populated
+        collection_exists = False
+        points_count = 0
+        try:
+            info = retriever.client.get_collection(retriever.collection_name)
+            collection_exists = True
+            points_count = info.points_count
+        except Exception:
+            pass
+            
+        if not collection_exists or points_count == 0:
+            log.info("[startup] Qdrant collection is missing or empty. Triggering fast fact injection...")
+            import inject_all_facts
+            # Run injection in the default executor to prevent blocking the async loop
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, inject_all_facts.main)
+            log.info("[startup] Fact injection completed successfully.")
+        else:
+            log.info(f"[startup] Collection '{retriever.collection_name}' has {points_count} points. DB is ready.")
+    except Exception as e:
+        log.error(f"[startup] Error checking or initializing database: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     asyncio.create_task(_feed_refresh_loop())
     asyncio.create_task(_midnight_rebuild_loop())
+    asyncio.create_task(_check_and_initialize_db())
     nxt = datetime.datetime.now(IST_OFFSET) + datetime.timedelta(
         seconds=_seconds_until_midnight_ist()
     )
@@ -153,9 +183,10 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 from api.routes import router

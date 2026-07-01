@@ -39,7 +39,7 @@ export default function ChatPage() {
       <div style={{ textAlign: "center", marginBottom: 32 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/logo.png"
+          src="/logo.svg"
           alt="vitap-UniOs"
           width={52}
           height={52}

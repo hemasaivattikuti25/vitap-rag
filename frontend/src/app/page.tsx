@@ -287,7 +287,7 @@ export default function Home() {
       <aside className={`desktop-sidebar ${mobileSidebarOpen ? "open" : ""}`} style={s.sidebar}>
         <div style={s.logo}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="vitap-UniOs Logo" width="28" height="28" style={{ borderRadius: 6, objectFit: "cover" }} />
+          <img src="/logo.svg" alt="vitap-UniOs Logo" width="28" height="28" style={{ borderRadius: 6, objectFit: "cover" }} />
           <span style={s.logoText}>vitap-UniOs</span>
           <button
             className="mobile-close-btn"
@@ -362,7 +362,7 @@ export default function Home() {
           
           <div style={s.mobileHeaderTitle}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="vitap-UniOs Logo" width="22" height="22" style={{ borderRadius: 5 }} />
+            <img src="/logo.svg" alt="vitap-UniOs Logo" width="22" height="22" style={{ borderRadius: 5 }} />
             <span>vitap-UniOs</span>
           </div>
           
@@ -398,7 +398,7 @@ export default function Home() {
             
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo.png"
+              src="/logo.svg"
               alt="vitap-UniOs Logo"
               width={isMobile ? "64" : "80"}
               height={isMobile ? "64" : "80"}
@@ -435,7 +435,7 @@ export default function Home() {
                 {msg.role === "assistant" && (
                   <div style={s.avatar}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo.png" alt="vitap-UniOs" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                    <img src="/logo.svg" alt="vitap-UniOs" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                   </div>
                 )}
                 <div
@@ -491,7 +491,7 @@ export default function Home() {
                 <div style={s.assistantRow}>
                   <div style={s.avatar}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/logo.png" alt="vitap-UniOs" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                    <img src="/logo.svg" alt="vitap-UniOs" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                   </div>
                   <div style={s.assistantBubble}>
                     <div style={s.dotsWrapper}>
