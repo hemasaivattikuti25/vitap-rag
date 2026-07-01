@@ -36,6 +36,129 @@ BACKEND_DIR    = os.path.dirname(os.path.abspath(__file__))
 # ─────────────────────────────────────────────────────────────────────────────
 STATIC_FACTS = [
 
+    # ── University Deans & Leadership ─────────────────────────────────────────
+    {
+        "title": "VIT-AP Deans & School Leadership — All Schools",
+        "source_url": "https://vitap.ac.in/allschools/",
+        "category": "academics", "anchor": "deans_leadership",
+        "content": (
+            "VIT-AP University — Deans and School Leadership:\n\n"
+            "University-Level Deans:\n"
+            "• Dean of Academics: Dr. Madhusudhana Rao N\n"
+            "• Dean of Academic Research: Dr. M. Venkata Rajanikanth "
+            "(heads PhD, SPORIC activities, and URE research projects)\n\n"
+            "School Deans:\n"
+            "• SCOPE Dean (School of Computer Science & Engineering): Dr. Sudhakar Ilango\n"
+            "• SENSE Dean (School of Electronics Engineering): Dr. Y. V. Pavan Kumar\n"
+            "• SAS Dean (School of Advanced Sciences): Dr. Srinivas S\n"
+            "• SMEC Dean (School of Mechanical Engineering): Dr. Dilipkumar Mohanty\n"
+            "• VSL Dean (School of Law): Dr. Benarji Chakka\n"
+            "• VSB Dean (School of Business): Dr. Arunkumar Sivakumar\n\n"
+            "The Dean of SCOPE is Dr. Sudhakar Ilango.\n"
+            "The Dean of SENSE is Dr. Y. V. Pavan Kumar.\n"
+            "The Dean of SAS is Dr. Srinivas S.\n"
+            "The Dean of SMEC is Dr. Dilipkumar Mohanty."
+        ),
+    },
+
+    # ── SCOPE School ──────────────────────────────────────────────────────────
+    {
+        "title": "SCOPE — School of Computer Science and Engineering at VIT-AP",
+        "source_url": "https://vitap.ac.in/allschools/SCOPE",
+        "category": "academics", "anchor": "scope_school",
+        "content": (
+            "School of Computer Science and Engineering (SCOPE) — VIT-AP University:\n\n"
+            "Dean: Dr. Sudhakar Ilango\n\n"
+            "Programs offered:\n"
+            "• B.Tech CSE | B.Tech CSE (AI & ML) | B.Tech CSE (Blockchain)\n"
+            "• B.Tech CSE (Cyber Security) | B.Tech CSE (Data Analytics)\n"
+            "• B.Tech CSE (Software Engineering) | B.Tech CSBS (with TCS)\n"
+            "• Integrated M.Tech CSE (5-year) | M.Tech CSE | PhD CSE\n\n"
+            "SCOPE focuses on high-demand CS disciplines with modern labs and "
+            "industry-aligned curriculum. Engineering Clinics and URE projects "
+            "are part of the curriculum."
+        ),
+    },
+
+    # ── SENSE School ──────────────────────────────────────────────────────────
+    {
+        "title": "SENSE — School of Electronics Engineering at VIT-AP",
+        "source_url": "https://vitap.ac.in/allschools/SENSE",
+        "category": "academics", "anchor": "sense_school",
+        "content": (
+            "School of Electronics Engineering (SENSE) — VIT-AP University:\n\n"
+            "Dean: Dr. Y. V. Pavan Kumar\n\n"
+            "Programs offered:\n"
+            "• B.Tech ECE | B.Tech ECE (VLSI) | B.Tech ECE (Embedded Systems)\n"
+            "• B.Tech EEE | B.Tech ECM\n"
+            "• Integrated M.Tech VLSI Design (5-year) | M.Tech VLSI | PhD Electronics\n\n"
+            "SENSE prepares students for VLSI design, communications, signal processing, "
+            "and embedded systems careers."
+        ),
+    },
+
+    # ── Facilities ────────────────────────────────────────────────────────────
+    {
+        "title": "VIT-AP Campus Facilities — Infrastructure, Labs, Transport, Healthcare",
+        "source_url": "https://vitap.ac.in/infrastructure",
+        "category": "facilities", "anchor": "all_facilities",
+        "content": (
+            "VIT-AP University Campus Facilities:\n\n"
+            "INFRASTRUCTURE:\n"
+            "• State-of-the-art academic blocks with smart classrooms.\n"
+            "• High-speed Wi-Fi across the entire campus.\n"
+            "• 24×7 power backup via generators and solar panels.\n"
+            "• Fully equipped auditorium and seminar halls.\n\n"
+            "LABORATORIES:\n"
+            "• 50+ specialized labs: Computing, VLSI, Robotics, Embedded Systems,\n"
+            "  Biotech, Chemistry, Physics, Mechanical, Civil, and more.\n"
+            "• Each lab has modern equipment updated per industry standards.\n"
+            "• Labs are accessible to students for project and research work.\n\n"
+            "TRANSPORT:\n"
+            "• VIT-AP provides bus transportation to and from Vijayawada, Guntur,\n"
+            "  and surrounding areas.\n"
+            "• Buses run on fixed routes daily for day scholars.\n"
+            "• Bus pass registration done through V-TOP portal.\n\n"
+            "HEALTHCARE / MEDICAL CENTER:\n"
+            "• On-campus Health Center (Medical Center) with qualified doctors and nurses.\n"
+            "• 24×7 ambulance facility available for emergencies.\n"
+            "• First aid available in every hostel block.\n"
+            "• Regular health camps and blood donation drives organized.\n\n"
+            "BANK & ATM:\n"
+            "• State Bank of India (SBI) branch and ATM on campus.\n"
+            "• Additional ATMs from multiple banks available.\n\n"
+            "CAFETERIA:\n"
+            "• Multiple food courts and cafeterias serving vegetarian and\n"
+            "  non-vegetarian meals at subsidized rates.\n"
+            "• Brands and outlets: various cuisine options available.\n\n"
+            "GUEST HOUSE:\n"
+            "• Fully furnished guest house for visiting faculty, parents, and delegates.\n\n"
+            "LIBRARY:\n"
+            "• Digital and physical library with 50,000+ books and journals.\n"
+            "• Access to online databases: IEEE Xplore, Springer, Elsevier, NPTEL.\n"
+            "• Open 8 AM – 10 PM on working days."
+        ),
+    },
+
+    # ── Sports ────────────────────────────────────────────────────────────────
+    {
+        "title": "VIT-AP Sports Facilities",
+        "source_url": "https://vitap.ac.in/sports/",
+        "category": "sports", "anchor": "sports_facilities",
+        "content": (
+            "VIT-AP University Sports Facilities:\n\n"
+            "• Cricket ground | Football/Soccer field | Basketball courts\n"
+            "• Volleyball courts | Badminton courts (indoor)\n"
+            "• Table Tennis | Chess | Carrom\n"
+            "• Swimming pool\n"
+            "• Gymnasium / Fitness center\n"
+            "• Athletics track\n\n"
+            "VIT-AP participates in inter-university tournaments and South Zone games. "
+            "Sports scholarships available for outstanding athletes. Sports Director "
+            "manages all sports activities on campus."
+        ),
+    },
+
     # ── Fees ──────────────────────────────────────────────────────────────────
     {
         "title": "B.Tech Fee Structure — VIT-AP University",
@@ -107,9 +230,7 @@ STATIC_FACTS = [
             "• Registration opens by CGPA order — higher CGPA registers first\n"
             "• Seats fill in SECONDS — have 2–3 backup slot combos ready\n"
             "• OS (Operating Systems) is a 5th-semester course for CSE/ECE\n"
-            "• Min credits/sem: 18 | Max: 27\n"
-            "• Must maintain 75% attendance in every registered course\n"
-            "• V-TOP also shows attendance, grades, exam schedule, and fee payment."
+            "• Min credits/sem: 18 | Max: 27 | Must maintain 75% attendance."
         ),
     },
     {
@@ -119,13 +240,8 @@ STATIC_FACTS = [
         "content": (
             "V-TOP (VIT-AP Technology Online Portal) — https://vtop.vitap.ac.in\n"
             "Official portal for all student academic activities at VIT-AP.\n\n"
-            "Features:\n"
-            "• FFCS Course Registration (schedule all semester courses)\n"
-            "• Real-time attendance tracking by subject\n"
-            "• Marks, CGPA, and grade cards\n"
-            "• Exam hall ticket and schedule\n"
-            "• Fee payment\n"
-            "• Internship and placement registration via CDC\n\n"
+            "Features: FFCS Course Registration, attendance tracking, marks/CGPA, "
+            "exam hall ticket, fee payment, internship & placement registration.\n\n"
             "To schedule any subject (OS, DBMS, CN, etc.):\n"
             "Login V-TOP → Academics → Course Registration → FFCS."
         ),
@@ -142,14 +258,9 @@ STATIC_FACTS = [
             "• Location: Beside AP Secretariat, Near Vijayawada, Andhra Pradesh — 522237\n"
             "• Established: 2017 (Deemed University status granted by UGC)\n"
             "• Part of the VIT Group (Vellore Institute of Technology)\n"
-            "• NAAC Accredited\n"
-            "• NBA Accredited programs\n"
-            "• Ranked in NIRF (National Institutional Ranking Framework)\n"
+            "• NAAC Accredited | NBA Accredited programs | NIRF Ranked\n"
             "• 8 Schools: SCOPE, SENSE, SMEC, SAS, SBST, VSB, VSL, VISH\n"
-            "• 10,000+ students enrolled\n"
-            "• 400+ faculty members\n"
-            "• 65+ active clubs and chapters\n"
-            "• International collaborations with 100+ universities worldwide\n"
+            "• 10,000+ students | 400+ faculty | 65+ clubs | 100+ global university ties\n"
             "• Placement: 95%+ rate | Highest package: ₹93 LPA\n"
             "• Website: https://vitap.ac.in | Admissions: VITEEE exam"
         ),
@@ -164,13 +275,11 @@ STATIC_FACTS = [
             "VIT-AP University Hostel Information:\n\n"
             "• Separate hostels for boys and girls — highly secure, 24×7 resident wardens.\n"
             "• Only VITians and authorized personnel allowed inside.\n"
-            "• Facilities: cot, chair, study table, cupboard in each room.\n"
-            "• Provision stores, laundry, and recreational spaces available.\n"
-            "• Wi-Fi enabled throughout hostel premises.\n\n"
+            "• Facilities per room: cot, chair, study table, cupboard. Wi-Fi enabled.\n"
+            "• Provision stores, laundry, and recreational spaces available.\n\n"
             "Hostel & Mess Fees (Per Annum):\n"
             "  ₹1,08,000 – ₹2,22,500 depending on room type (AC/Non-AC, "
-            "single/double/multi-bed) and mess plan chosen.\n"
-            "• Mess serves breakfast, lunch, snacks, and dinner.\n"
+            "single/double/multi-bed) and mess plan.\n"
             "• Refundable caution deposit: ₹3,000 – ₹5,000 (one-time)."
         ),
     },
