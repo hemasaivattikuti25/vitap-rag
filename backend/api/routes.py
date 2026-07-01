@@ -16,14 +16,48 @@ class ChatRequest(BaseModel):
     query: str
     history: Optional[List[dict]] = None
 
+class FeedbackRequest(BaseModel):
+    query: str
+    response: str
+    feedback: str  # 'up' or 'down'
+
 @router.post("/chat")
 @limiter.limit("20/minute")
 async def chat_endpoint(request: Request, chat_request: ChatRequest):
+    # ── 1. Input Guardrail ──
+    query_lower = chat_request.query.lower()
+    injection_keywords = ["ignore instructions", "ignore previous", "system prompt", "overwrite instructions", "bypass rules", "you are now a"]
+    if any(k in query_lower for k in injection_keywords):
+         raise HTTPException(
+             status_code=400,
+             detail="Prompt injection warning: Please stick to official campus questions about VIT-AP."
+         )
+
     from rag.generator import generate_answer_stream
     return StreamingResponse(
         generate_answer_stream(chat_request.query, chat_request.history),
         media_type="text/event-stream"
     )
+
+@router.post("/chat/feedback")
+async def chat_feedback(feedback_req: FeedbackRequest):
+    """Log thumbs up/down feedback to a local file for continuous improvement."""
+    import json
+    import time
+    log_entry = {
+        "timestamp": time.time(),
+        "query": feedback_req.query,
+        "response": feedback_req.response,
+        "feedback": feedback_req.feedback
+    }
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        log_path = os.path.join(base_dir, "feedback_logs.jsonl")
+        with open(log_path, "a") as f:
+            f.write(json.dumps(log_entry) + "\n")
+        return {"status": "ok", "message": "Feedback logged successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to log feedback: {e}")
 
 
 # ── Campus Feed ───────────────────────────────────────────────────────────

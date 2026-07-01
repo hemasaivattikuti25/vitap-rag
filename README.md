@@ -1,7 +1,19 @@
-#  vitap-UniOs — Campus Platform for VIT-AP
+# 🎓 vitap-UniOs — Campus Platform for VIT-AP
 
 <p align="center">
-  <img src="frontend/public/logo.png" alt="vitap-UniOs Logo" width="100" height="100" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+  <img src="frontend/public/logo.png" alt="vitap-UniOs Logo" width="100" height="100" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/hemasaivattikuti25/vitap-rag/actions/workflows/ci.yml">
+    <img src="https://github.com/hemasaivattikuti25/vitap-rag/actions/workflows/ci.yml/badge.svg" alt="CI Build Status" />
+  </a>
+  <a href="https://github.com/hemasaivattikuti25/vitap-rag/stargazers">
+    <img src="https://img.shields.io/github/stars/hemasaivattikuti25/vitap-rag?color=yellow&style=flat-square" alt="GitHub Stars" />
+  </a>
+  <a href="https://github.com/hemasaivattikuti25/vitap-rag/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/hemasaivattikuti25/vitap-rag?color=blue&style=flat-square" alt="License" />
+  </a>
 </p>
 
 An intelligent, premium university OS platform for VIT-AP. It features a real-time scraping pipeline, categorised clubs and events databases, and an advanced **Retrieval-Augmented Generation (RAG)** AI Chat assistant that answers student queries about courses, hostels, academic calendars, and official affidavits.
@@ -12,11 +24,12 @@ Developed by **Hemasai Vattikuti**. Powered by **Groq** + **Qdrant**.
 
 ## 🚀 Key Features
 
-* **🤖 RAG AI Assistant:** Context-aware chatbot powered by Groq (LLaMA-3) and a semantic Qdrant vector database. It searches official VIT-AP documents, course structures, and student guidelines.
-* **📰 Real-Time Campus Feed:** An automated background web-crawling daemon that runs every 30 minutes to scrape announcements, news, and opportunities from VIT-AP portals.
-* **🏛️ Categorised Clubs Board:** Dynamic dashboard featuring 70+ student clubs and chapters, classified automatically (Technical, Cultural, Sports, etc.) using text heuristics.
-* **📅 Interactive Events Board:** Live campus events tracker providing dates, venues, descriptions, and official registration links.
-* **📱 Progressive Web App (PWA):** Installable on iOS & Android directly from mobile browsers with a fully optimized mobile-first layout.
+* **🤖 Hybrid RAG AI Assistant:** Context-aware chatbot utilizing keyword-augmented vector search (Qdrant) and LLM streaming (Groq). Features a local lexical-semantic reranker for extreme precision.
+* **🛡️ Security & Guardrails:** Built-in rate limiting (max 20 requests/minute via `slowapi`) and input filters to block prompt injection or malicious attempts.
+* **📈 Automated RAG Evaluation:** A local evaluation suite (`evaluate_rag.py`) that tests retrieval accuracy on typical queries against a ground-truth dataset.
+* **📰 Real-Time Campus Feed:** Automated background crawler daemon running every 30 minutes to capture live campus announcements and opportunities.
+* **🏛️ Categorised Clubs Board:** Dynamic dashboard featuring 70+ student clubs and chapters, classified automatically (Technical, Cultural, Sports, etc.).
+* **📱 Progressive Web App (PWA):** Installable on iOS & Android directly from mobile browsers.
 
 ---
 
@@ -34,35 +47,44 @@ Developed by **Hemasai Vattikuti**. Powered by **Groq** + **Qdrant**.
                                      |
                                      v
                         +------------+------------+
-                        |  FastAPI / Render Cloud |
+                        |  FastAPI / Render Cloud | ── [Rate Limiter & Guardrails]
                         +------+-----------+------+
                                |           |
                                v           v
             +------------------+--+     +--+------------------+
             |  Qdrant Vector DB   |     | SQLite Mock Database|
-            |  (Local on-disk)    |     | (local_supabase.db) |
+            |  (Local/Cloud Sync) |     | (local_supabase.db) |
             +---------------------+     +---------------------+
 ```
 
-* **Frontend:** Next.js 14 (App Router), Vanilla CSS, responsive layouts using `100dvh` (Dynamic Viewports).
-* **Backend:** FastAPI (Python 3.11), Uvicorn.
-* **Vector Database:** Qdrant (Runs locally on-disk in `local_qdrant/` — **no Docker/key required**).
+* **Frontend:** Next.js 14 (App Router), Vanilla CSS, responsive dynamic viewports.
+* **Backend:** FastAPI (Python 3.11), Uvicorn, SlowAPI.
+* **Vector DB:** Qdrant Cloud + Local disk failover fallback.
 * **Embeddings:** `sentence-transformers/all-MiniLM-L6-v2` (384-dimensional dense vectors).
-* **Mock Database:** SQLite (`local_supabase.db`) wrapped in a Supabase Mock SDK for local-first zero-credentials compatibility.
-* **AI Engine:** Groq API (LLaMA 3 70B & 8B models with automated failovers).
+* **AI Engine:** Groq API (LLaMA 3.1 70B & 8B models).
 
 ---
 
-## ⚙️ Local Development Setup
+## 🐳 Quick 1-Click Setup (Docker Compose)
 
-### 1. Prerequisites
-* **Node.js** (v18+)
-* **Python** (v3.10+)
-* A **Groq API Key** (Get one for free at [console.groq.com](https://console.groq.com))
+Get the entire stack (Next.js, FastAPI, Qdrant DB) running in a single command:
+
+1. Clone the repository and configure your environment:
+   ```bash
+   cp backend/.env.example backend/.env
+   # Add your GROQ_API_KEY inside backend/.env
+   ```
+2. Run Docker Compose:
+   ```bash
+   docker-compose up --build
+   ```
+3. Open [http://localhost:3000](http://localhost:3000) in your browser!
 
 ---
 
-### 2. Backend Setup
+## ⚙️ Manual Local Development Setup
+
+### 1. Backend Setup
 1. Navigate to the backend directory:
    ```bash
    cd backend
@@ -76,85 +98,50 @@ Developed by **Hemasai Vattikuti**. Powered by **Groq** + **Qdrant**.
    ```bash
    pip install -r requirements.txt
    ```
-4. Create a `backend/.env` file with the following variables:
+4. Create a `backend/.env` file:
    ```env
    GROQ_API_KEY=your_groq_api_key_here
    QDRANT_URL=local
    SUPABASE_URL=mock
    SUPABASE_KEY=mock
+   ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
    ```
-5. Run the background index builder script (downloads embeddings model, scrapes sites, and builds vector index):
+5. Run the background index builder script (scrapes pages and builds vector index):
    ```bash
    python rebuild_index.py
    ```
-6. Start the FastAPI development server:
+6. Start the development server:
    ```bash
    uvicorn main:app --reload --port 8000
    ```
 
-The backend API will be running at [http://localhost:8000](http://localhost:8000).
-
----
-
-### 3. Frontend Setup
+### 2. Frontend Setup
 1. Navigate to the frontend directory:
    ```bash
    cd frontend
-   ```
-2. Install Node dependencies:
-   ```bash
    npm install
-   ```
-3. Start the Next.js development server:
-   ```bash
    npm run dev
    ```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser. The app is ready!
-
----
-
-## 🌐 Cloud Deployment (Vercel + Render)
-
-### 1. Backend (Render)
-You can deploy the FastAPI server to **Render** using the provided `render.yaml` blueprint:
-1. Connect your repository to Render.
-2. Click **New** → **Blueprint** and select this repo.
-3. Configure the following environment variables on the Render dashboard:
-   * `GROQ_API_KEY` (Your API key)
-   * `QDRANT_URL` (Set to `local`)
-   * `SUPABASE_URL` (Set to `mock`)
-   * `SUPABASE_KEY` (Set to `mock`)
-4. Deploy the service. Take note of the web service URL (e.g. `https://vitap-unios.onrender.com`).
-
-### 2. Frontend (Vercel)
-1. Import your project into **Vercel**.
-2. Go to **Project Settings** → **Environment Variables**.
-3. Add a new variable:
-   * **Key:** `NEXT_PUBLIC_API_URL`
-   * **Value:** `https://your-backend-name.onrender.com` (Your Render URL)
-4. Trigger a build. Vercel will optimize and host the client app.
+2. Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 📂 Project Structure
+## 🧪 Testing & Evaluation
 
-```
-vitap-UniOs/
-├── backend/
-│   ├── api/             # FastAPI routers & endpoints
-│   ├── crawler/         # Async crawler scripts & web scrapers
-│   ├── db/              # In-memory feed store & SQLite supabase mock
-│   ├── models/          # Pydantic schemas
-│   ├── rag/             # Qdrant retrievers & Groq generator streams
-│   ├── main.py          # Entry point (initializes background crawler daemon)
-│   ├── rebuild_index.py # Scrapes website and builds Qdrant local files
-│   └── render.yaml      # Render blueprint configuration
-└── frontend/
-    ├── public/          # Assets (logos, PWAs, banner images)
-    └── src/app/         # Next.js pages (Chat, Clubs, Events dashboards)
+We run a local evaluation suite to ensure that search retrieval is accurate and relevant.
+
+To run the RAG evaluator:
+```bash
+cd backend
+python evaluate_rag.py
 ```
 
+This runs a 7-query ground-truth verification suite, checking cosine similarity, title matching, and keyword overlap.
+
 ---
 
-Developed with ❤️ by **Hemasai Vattikuti**. Feel free to star this repository if you found it helpful!
+## 🤝 Contributing
+
+Contributions make the open-source community amazing. Please read our [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+
+Developed with ❤️ by **Hemasai Vattikuti**. Feel free to star this repository!

@@ -250,6 +250,19 @@ export default function Home() {
     }
   };
 
+  const sendFeedback = async (query: string, response: string, type: "up" | "down") => {
+    try {
+      await fetch(`${API_URL}/api/chat/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, response, feedback: type }),
+      });
+      alert("Thank you for your feedback! It helps improve vitap-UniOs.");
+    } catch (e) {
+      console.error("Feedback failed:", e);
+    }
+  };
+
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -443,6 +456,27 @@ export default function Home() {
                           [{i + 1}] {c.length > 55 ? c.slice(0, 55) + "…" : c}
                         </a>
                       ))}
+                    </div>
+                  {msg.role === "assistant" && !msg.error && msg.content && (
+                    <div style={{ display: "flex", gap: 12, marginTop: 10, opacity: 0.65 }}>
+                      <button
+                        onClick={() => sendFeedback(messages[idx - 1]?.content || "", msg.content, "up")}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", display: "flex", alignItems: "center", gap: 4, fontSize: "0.85rem", padding: "2px 6px", borderRadius: 4 }}
+                        title="This answer was helpful"
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.75")}
+                      >
+                        👍 Helpful
+                      </button>
+                      <button
+                        onClick={() => sendFeedback(messages[idx - 1]?.content || "", msg.content, "down")}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", display: "flex", alignItems: "center", gap: 4, fontSize: "0.85rem", padding: "2px 6px", borderRadius: 4 }}
+                        title="This answer was not helpful"
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.75")}
+                      >
+                        👎 Unhelpful
+                      </button>
                     </div>
                   )}
                 </div>

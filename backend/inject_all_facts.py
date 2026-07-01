@@ -35,7 +35,67 @@ BACKEND_DIR    = os.path.dirname(os.path.abspath(__file__))
 # ALL VERIFIED FACTS
 # ─────────────────────────────────────────────────────────────────────────────
 STATIC_FACTS = [
+    # ── Library ───────────────────────────────────────────────────────────────
+    {
+        "title": "VIT-AP Library — Digital & Physical Resources",
+        "source_url": "https://vitap.ac.in/newlibrary", "anchor": "library",
+        "category": "academics",
+        "content": (
+            "VIT-AP University Library:\n"
+            "• 50,000+ books and e-books, journals and research papers.\n"
+            "• Online database access: IEEE Xplore, Springer, Elsevier, Scopus, NPTEL.\n"
+            "• Digital library terminals available for students.\n"
+            "• Open Monday–Saturday: 8 AM – 10 PM.\n"
+            "• Separate reading rooms and group study areas.\n"
+            "• Newspaper and magazine section."
+        )
+    },
 
+    # ── Healthcare ────────────────────────────────────────────────────────────
+    {
+        "title": "VIT-AP Health Center — Medical Facility on Campus",
+        "source_url": "https://vitap.ac.in/healthcare", "anchor": "healthcare",
+        "category": "facilities",
+        "content": (
+            "VIT-AP Health Center / Medical Center:\n"
+            "• Full-time qualified doctors and nurses available on campus.\n"
+            "• 24×7 emergency ambulance service.\n"
+            "• First-aid rooms in every hostel block.\n"
+            "• Regular medical checkups and health camps organized.\n"
+            "• Tie-ups with nearby hospitals for specialist referrals.\n"
+            "• Free consultation for enrolled students."
+        )
+    },
+
+    # ── Bank & ATM ────────────────────────────────────────────────────────────
+    {
+        "title": "VIT-AP Bank, ATM & Financial Services on Campus",
+        "source_url": "https://vitap.ac.in/bank-and-atm", "anchor": "bank_atm",
+        "category": "facilities",
+        "content": (
+            "VIT-AP Campus Banking Facilities:\n"
+            "• State Bank of India (SBI) branch located on campus.\n"
+            "• SBI ATM + ATMs from other banks available on campus.\n"
+            "• Students can open zero-balance savings accounts on joining.\n"
+            "• Fee payment and scholarship disbursement via campus bank.\n"
+            "• PhonePe, UPI and online payment accepted for most services."
+        )
+    },
+
+    # ── Transport ─────────────────────────────────────────────────────────────
+    {
+        "title": "VIT-AP Transport — Bus Service for Students",
+        "source_url": "https://vitap.ac.in/transport", "anchor": "transport",
+        "category": "facilities",
+        "content": (
+            "VIT-AP University Transport / Bus Service:\n"
+            "• Daily bus routes connecting VIT-AP campus to Vijayawada, Guntur, Amaravati and nearby areas.\n"
+            "• Buses available for day scholars (non-hostel students).\n"
+            "• Bus pass registration done via V-TOP portal each semester.\n"
+            "• Dedicated pickup and drop timings aligned with class schedule.\n"
+            "• Safe and monitored transport with GPS-tracked buses."
+        )
+    },
     # ── University Deans & Leadership ─────────────────────────────────────────
     {
         "title": "VIT-AP Deans & School Leadership — All Schools",

@@ -59,6 +59,15 @@ jobs:
           print('Routes:', [r.path for r in app.routes])
           "
 
+      - name: Run RAG Ingestion & Query Evaluation Suite
+        working-directory: backend
+        run: |
+          # Seed local Qdrant database with 18 static facts
+          python inject_all_facts.py
+          # Run the evaluation suite
+          python evaluate_rag.py
+
+
       - name: Health endpoint returns 200
         working-directory: backend
         run: |

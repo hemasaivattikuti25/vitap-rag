@@ -165,19 +165,64 @@ class QdrantRetriever:
             response = self.client.query_points(
                 collection_name=self.collection_name,
                 query=query_vector,
-                limit=20,  # larger candidate pool
+                limit=15,  # larger candidate pool
             )
-            results_raw = response.points if hasattr(response, "points") else response
+            # Standardize candidates into a dictionary format to avoid object property constraints
+            vector_results_raw = response.points if hasattr(response, "points") else response
+            candidates = []
+            seen_ids = set()
+
+            # Add vector search results
+            for hit in vector_results_raw:
+                if hit.id not in seen_ids:
+                    candidates.append({
+                        "id": hit.id,
+                        "payload": hit.payload,
+                        "score": hit.score
+                    })
+                    seen_ids.add(hit.id)
+
+            # Lexical Fallback Retrieval: Search Qdrant using keyword matching to prevent missing key documents
+            from qdrant_client.models import Filter, FieldCondition, MatchText
+            
+            # Extract important query terms (length > 3, lowercased, ignore punctuation)
+            query_clean = "".join([c if c.isalnum() or c.isspace() else " " for c in query_lower])
+            keywords = [w.strip() for w in query_clean.split() if len(w.strip()) > 3]
+            
+            if keywords:
+                # Search title or content for these terms
+                conditions = []
+                for kw in keywords:
+                    conditions.append(FieldCondition(key="title", match=MatchText(text=kw)))
+                    conditions.append(FieldCondition(key="content", match=MatchText(text=kw)))
+                
+                try:
+                    lexical_res = self.client.scroll(
+                        collection_name=self.collection_name,
+                        scroll_filter=Filter(should=conditions),
+                        limit=8
+                    )[0]
+                    # Map lexical Record results
+                    for hit in lexical_res:
+                        if hit.id not in seen_ids:
+                            candidates.append({
+                                "id": hit.id,
+                                "payload": hit.payload,
+                                "score": 0.35  # baseline score for lexical matches
+                            })
+                            seen_ids.add(hit.id)
+                except Exception as lex_err:
+                    print(f"[retriever] Lexical scroll search failed: {lex_err}")
             
             # Local keyword-matching / lexical boost re-ranking
             scored_candidates = []
-            for hit in results_raw:
-                payload = hit.payload
+            for item in candidates:
+                payload = item["payload"]
                 title = payload.get("title", "").lower()
                 content = payload.get("content", "").lower()
                 
-                # Basic semantic score from Qdrant
-                score = hit.score
+                # Basic semantic score
+                score = item["score"]
                 
                 # Lexical Term Matching Boost (Reranking)
                 # Boost if exact query words appear in the title or content
@@ -190,7 +235,7 @@ class QdrantRetriever:
                         match_count += 0.5  # Medium boost for content matches
                 
                 # Combine semantic score and lexical term match boost
-                final_score = score + (match_count * 0.1)
+                final_score = score + (match_count * 0.15)
                 
                 scored_candidates.append({
                     "content":    payload.get("content", ""),
