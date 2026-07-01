@@ -136,6 +136,8 @@ async def yahoo_search(query: str, max_results: int = 4, is_general: bool = Fals
     if not is_general and "vit" not in keyword_query.lower():
         search_query = f"{keyword_query} VIT AP"
 
+    print(f"[yahoo_search] Searching: '{search_query}' (original: '{query}')")
+
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "

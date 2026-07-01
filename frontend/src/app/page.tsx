@@ -52,13 +52,37 @@ const API_URL =
   "https://vitap-rag.onrender.com";
 
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  // ── Chat state — persisted to localStorage ──────────────────────────────
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("vitap_chat_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [started, setStarted] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const saved = localStorage.getItem("vitap_chat_history");
+      const msgs = saved ? JSON.parse(saved) : [];
+      return msgs.length > 0;
+    } catch { return false; }
+  });
   const [isMobile, setIsMobile] = useState(false);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [started, setStarted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // ── Persist chat messages to localStorage on every change ────────────────
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      // Keep last 100 messages max to avoid localStorage quota issues
+      const toSave = messages.slice(-100);
+      localStorage.setItem("vitap_chat_history", JSON.stringify(toSave));
+    } catch { /* quota exceeded — silently ignore */ }
+  }, [messages]);
 
   // Feed state
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
@@ -301,7 +325,7 @@ export default function Home() {
 
         <button
           style={s.newChatBtn}
-          onClick={() => { setMessages([]); setStarted(false); setInput(""); }}
+          onClick={() => { setMessages([]); setStarted(false); setInput(""); try { localStorage.removeItem("vitap_chat_history"); } catch {} }}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
