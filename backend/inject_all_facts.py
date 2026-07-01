@@ -475,6 +475,13 @@ def main():
 
     print("[inject_all_facts] Done.\n")
 
+    # Also inject faculty directory (cabin numbers, emails, extensions per school)
+    try:
+        import inject_faculty_directory
+        inject_faculty_directory.main()
+    except Exception as e:
+        print(f"[inject_all_facts] ⚠️ Faculty directory injection failed: {e}")
+
 
 if __name__ == "__main__":
     main()
