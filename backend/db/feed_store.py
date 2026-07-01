@@ -4,10 +4,10 @@ No database needed — feed is cached in memory and refreshed every 4 hours.
 SQLite-free, zero external dependencies beyond what's already installed.
 """
 
-import asyncio
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
-import sys, os
+import sys
+import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -51,7 +51,6 @@ class FeedStore:
             fresh = await fetch_feed_items()
 
             # Always include curated items at the end as stable fallback
-            curated_titles = {i["title"] for i in CURATED_ITEMS}
             existing_titles = {i["title"] for i in fresh}
 
             merged = list(fresh)

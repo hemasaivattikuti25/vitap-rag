@@ -7,7 +7,12 @@ Usage:
     python rebuild_index.py [--force]   # --force re-scrapes even if cache exists
 """
 
-import os, sys, json, time, asyncio, argparse, urllib.parse
+import os
+import sys
+import json
+import asyncio
+import argparse
+import urllib.parse
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -346,9 +351,9 @@ async def scrape_with_playwright(pages: list) -> list[dict]:
                     text = " ".join(text.split())[:2000]
                     if len(text) > 100:
                         chunks.append({"title": url, "content": text, "source_url": url})
-                        print(f"    ✓ 1 chunk (full text fallback)")
+                        print("    ✓ 1 chunk (full text fallback)")
                     else:
-                        print(f"    ✗ No content")
+                        print("    ✗ No content")
 
             except Exception as e:
                 print(f"    ✗ Error: {str(e)[:80]}")

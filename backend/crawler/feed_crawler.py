@@ -39,13 +39,20 @@ DDG_QUERIES = [
 
 def _guess_category_from_text(text: str) -> str:
     t = text.lower()
-    if any(k in t for k in ["hackathon", "code", "coding", "contest", "compete"]): return "Hackathon"
-    if any(k in t for k in ["workshop", "seminar", "webinar", "talk", "lecture"]):  return "Workshop"
-    if any(k in t for k in ["internship", "intern", "opportunity", "job", "career"]): return "Internship"
-    if any(k in t for k in ["club", "chapter", "society", "member", "recruit"]):    return "Club"
-    if any(k in t for k in ["placement", "placed", "company", "microsoft", "google", "amazon"]): return "Placement"
-    if any(k in t for k in ["research", "paper", "journal", "publication"]):        return "Research"
-    if any(k in t for k in ["admission", "apply", "application", "fee", "scholarship"]): return "Admission"
+    if any(k in t for k in ["hackathon", "code", "coding", "contest", "compete"]):
+        return "Hackathon"
+    if any(k in t for k in ["workshop", "seminar", "webinar", "talk", "lecture"]):
+        return "Workshop"
+    if any(k in t for k in ["internship", "intern", "opportunity", "job", "career"]):
+        return "Internship"
+    if any(k in t for k in ["club", "chapter", "society", "member", "recruit"]):
+        return "Club"
+    if any(k in t for k in ["placement", "placed", "company", "microsoft", "google", "amazon"]):
+        return "Placement"
+    if any(k in t for k in ["research", "paper", "journal", "publication"]):
+        return "Research"
+    if any(k in t for k in ["admission", "apply", "application", "fee", "scholarship"]):
+        return "Admission"
     return "News"
 
 

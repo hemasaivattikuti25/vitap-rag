@@ -240,9 +240,6 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
         citations = ["https://vitap.ac.in"]
         is_identity = True
 
-    docs = []
-    max_score = 0.0
-    filtered_docs = []
     is_general = False
     
     if is_identity:
@@ -299,7 +296,7 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
                     relevant_local = await check_relevance(query, candidates)
                     print(f"[generator] LLM relevance filter kept {len(relevant_local)} of {len(candidates)} candidates.")
             else:
-                print(f"[generator] No candidate documents to filter.")
+                print("[generator] No candidate documents to filter.")
             
             context_parts = []
             

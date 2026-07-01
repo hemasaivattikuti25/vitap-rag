@@ -4,7 +4,7 @@ import sys
 def main():
     print("Pre-downloading FastEmbed model to local workspace cache...")
     try:
-        model = TextEmbedding(
+        TextEmbedding(
             model_name="sentence-transformers/all-MiniLM-L6-v2",
             cache_dir="./fastembed_cache"
         )

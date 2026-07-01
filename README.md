@@ -1,147 +1,119 @@
-# 🎓 vitap-UniOs — Campus Platform for VIT-AP
+# vitap-UniOs — Campus Platform for VIT-AP
 
-<p align="center">
-  <img src="frontend/public/logo.png" alt="vitap-UniOs Logo" width="100" height="100" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
-</p>
-
-<p align="center">
-  <a href="https://github.com/hemasaivattikuti25/vitap-rag/actions/workflows/ci.yml">
-    <img src="https://github.com/hemasaivattikuti25/vitap-rag/actions/workflows/ci.yml/badge.svg" alt="CI Build Status" />
-  </a>
-  <a href="https://github.com/hemasaivattikuti25/vitap-rag/stargazers">
-    <img src="https://img.shields.io/github/stars/hemasaivattikuti25/vitap-rag?color=yellow&style=flat-square" alt="GitHub Stars" />
-  </a>
-  <a href="https://github.com/hemasaivattikuti25/vitap-rag/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/hemasaivattikuti25/vitap-rag?color=blue&style=flat-square" alt="License" />
-  </a>
-</p>
-
-An intelligent, premium university OS platform for VIT-AP. It features a real-time scraping pipeline, categorised clubs and events databases, and an advanced **Retrieval-Augmented Generation (RAG)** AI Chat assistant that answers student queries about courses, hostels, academic calendars, and official affidavits.
-
-Developed by **Hemasai Vattikuti**. Powered by **Groq** + **Qdrant**.
+An intelligent, production-grade campus information assistant and RAG pipeline for VIT-AP University. This repository contains the unified architecture for scraping live campus portals, indexing structured facts in Qdrant, protecting endpoints via rate limiting, and delivering context-aware answers to student queries.
 
 ---
 
-## 🚀 Key Features
+## 🏗️ System Architecture
 
-* **🤖 Hybrid RAG AI Assistant:** Context-aware chatbot utilizing keyword-augmented vector search (Qdrant) and LLM streaming (Groq). Features a local lexical-semantic reranker for extreme precision.
-* **🛡️ Security & Guardrails:** Built-in rate limiting (max 20 requests/minute via `slowapi`) and input filters to block prompt injection or malicious attempts.
-* **📈 Automated RAG Evaluation:** A local evaluation suite (`evaluate_rag.py`) that tests retrieval accuracy on typical queries against a ground-truth dataset.
-* **📰 Real-Time Campus Feed:** Automated background crawler daemon running every 30 minutes to capture live campus announcements and opportunities.
-* **🏛️ Categorised Clubs Board:** Dynamic dashboard featuring 70+ student clubs and chapters, classified automatically (Technical, Cultural, Sports, etc.).
-* **📱 Progressive Web App (PWA):** Installable on iOS & Android directly from mobile browsers.
-
----
-
-## 🛠️ Tech Stack & Architecture
+The platform is designed around a modular, three-tier architecture:
 
 ```
-                 +----------------------------------------+
-                 |          User Browser / PWA            |
-                 +-------------------+--------------------+
-                                     |
-                                     v
-                        +------------+------------+
-                        |  Next.js 14 / Vercel    |
-                        +------------+------------+
-                                     |
-                                     v
-                        +------------+------------+
-                        |  FastAPI / Render Cloud | ── [Rate Limiter & Guardrails]
-                        +------+-----------+------+
-                               |           |
-                               v           v
-            +------------------+--+     +--+------------------+
-            |  Qdrant Vector DB   |     | SQLite Mock Database|
-            |  (Local/Cloud Sync) |     | (local_supabase.db) |
-            +---------------------+     +---------------------+
+                    +----------------------------------------+
+                    |           Next.js 14 Web App           |
+                    +-------------------+--------------------+
+                                        |
+                                        v  [CORS Restricted API]
+                    +-------------------+--------------------+
+                    |        FastAPI Production Server       |
+                    |    (Rate Limiting & Safety Filters)    |
+                    +------+-----------+-----------+---------+
+                           |           |           |
+                           v           v           v
+                  +--------+--+  +-----+---+  +----+---------+
+                  | Qdrant DB |  | SQLite  |  |  Groq LLaMA  |
+                  | (Hybrid)  |  | (Mock)  |  |  Inference   |
+                  +-----------+  +---------+  +--------------+
 ```
 
-* **Frontend:** Next.js 14 (App Router), Vanilla CSS, responsive dynamic viewports.
-* **Backend:** FastAPI (Python 3.11), Uvicorn, SlowAPI.
-* **Vector DB:** Qdrant Cloud + Local disk failover fallback.
-* **Embeddings:** `sentence-transformers/all-MiniLM-L6-v2` (384-dimensional dense vectors).
-* **AI Engine:** Groq API (LLaMA 3.1 70B & 8B models).
+### 1. Ingestion & In-Memory Pipeline (`crawler/`, `rebuild_index.py`)
+- Automated background scrapers that run at midnight IST to scrape 65+ vitap.ac.in pages using Playwright (resilient to JS rendering with 3× exponential backoff retries).
+- Cleans and structures raw HTML, extracting page blocks, lists, and tables while discarding header/footer boilerplate.
+- Normalizes and synchronizes verified static anchors (SCOPE/SENSE deans, hostels, sports, healthcare, transport) as the baseline "source of truth".
+
+### 2. Retrieval-Augmented Generation (`rag/`)
+- **Hybrid Retrieval**: Combines semantic dense vector search (384-dimensional embeddings via FastEmbed ONNX runtime) with exact-match lexical Qdrant scroll queries.
+- **Lexical-Semantic Reranker**: Locally re-scores candidate documents in Python, weighting keyword match frequency in the title and content to resolve semantic ambiguity for specific campus entities.
+- **Groq Inference**: Streamed completions using Groq's high-speed async client (LLaMA 3.1 70B & 8B) for fast response times.
+
+### 3. API Layer & Safety Gateway (`main.py`, `api/`)
+- Protected chat streaming endpoint (`/api/chat`) implementing `slowapi` rate limiting (20 requests/minute per client IP).
+- Input guardrails checking for prompt injection keywords and malicious overrides.
+- Persistent user feedback endpoint (`/api/chat/feedback`) logging ratings to `feedback_logs.jsonl` for continuous quality updates.
 
 ---
 
-## 🐳 Quick 1-Click Setup (Docker Compose)
+## 📊 Environment Configuration (Render & Vercel)
 
-Get the entire stack (Next.js, FastAPI, Qdrant DB) running in a single command:
+Ensure these variables are configured correctly in your production host dashboard.
 
-1. Clone the repository and configure your environment:
-   ```bash
-   cp backend/.env.example backend/.env
-   # Add your GROQ_API_KEY inside backend/.env
-   ```
-2. Run Docker Compose:
-   ```bash
-   docker-compose up --build
-   ```
-3. Open [http://localhost:3000](http://localhost:3000) in your browser!
+### Backend (Render Cloud)
+| Variable | Value/Description | Purpose |
+|---|---|---|
+| `PYTHON_VERSION` | `3.11.4` | Enforces the correct Python runtime |
+| `ALLOWED_ORIGINS` | `https://vitap-rag.vercel.app` | Restricts CORS to the production frontend domain |
+| `QDRANT_URL` | `https://xxxx.cloud.qdrant.io:6333` | Production Qdrant Cloud cluster endpoint |
+| `QDRANT_API_KEY` | `your_qdrant_cloud_api_key` | Authentication key for production vector DB |
+| `GROQ_API_KEY` | `gsk_your_groq_production_key` | Key for LLaMA-3.1 inference model |
+| `SUPABASE_URL` | `mock` | Mock Supabase configuration for local-first testing |
+| `SUPABASE_KEY` | `mock` | Mock Supabase key |
+
+### Frontend (Vercel)
+| Variable | Value/Description | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | `https://campusos-backend.onrender.com` | Production API gateway endpoint |
 
 ---
 
-## ⚙️ Manual Local Development Setup
+## 🐳 Deployment & Local Setup
 
-### 1. Backend Setup
-1. Navigate to the backend directory:
+### Unified Container Build (Docker Compose)
+To run the Next.js client, FastAPI server, and a local Qdrant instance together in a isolated container environment:
+```bash
+# 1. Clone the project and duplicate the configuration template
+cp backend/.env.example backend/.env
+
+# 2. Add your Groq API key inside backend/.env, then launch:
+docker-compose up --build
+```
+Access the application dashboard at `http://localhost:3000`.
+
+### Manual Developer Build (Python Venv)
+1. **Backend Configuration**:
    ```bash
    cd backend
-   ```
-2. Create and activate a Python virtual environment:
-   ```bash
    python3 -m venv venv
    source venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
    pip install -r requirements.txt
-   ```
-4. Create a `backend/.env` file:
-   ```env
-   GROQ_API_KEY=your_groq_api_key_here
-   QDRANT_URL=local
-   SUPABASE_URL=mock
-   SUPABASE_KEY=mock
-   ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
-   ```
-5. Run the background index builder script (scrapes pages and builds vector index):
-   ```bash
-   python rebuild_index.py
-   ```
-6. Start the development server:
-   ```bash
+   
+   # Run the crawler and index builder
+   python rebuild_index.py --force
+   
+   # Run the local server
    uvicorn main:app --reload --port 8000
    ```
-
-### 2. Frontend Setup
-1. Navigate to the frontend directory:
+2. **Frontend Configuration**:
    ```bash
    cd frontend
    npm install
    npm run dev
    ```
-2. Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 🧪 Testing & Evaluation
+## 🧪 RAG Evaluation & Ingestion Tests
 
-We run a local evaluation suite to ensure that search retrieval is accurate and relevant.
+To ensure accurate retrieval and prevent regressions when updating model anchors or crawler layouts, we maintain a local evaluation suite:
 
-To run the RAG evaluator:
 ```bash
 cd backend
 python evaluate_rag.py
 ```
 
-This runs a 7-query ground-truth verification suite, checking cosine similarity, title matching, and keyword overlap.
+The evaluation script validates search retrieval across 7 standard categories (SCOPE Dean, course scheduling, placement packages, library hours, banking locations, hostel fees, and SENSE Dean) against a predefined ground-truth dataset, asserting exact term occurrence and minimum cosine similarity thresholds.
 
 ---
 
 ## 🤝 Contributing
 
-Contributions make the open-source community amazing. Please read our [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
-
-Developed with ❤️ by **Hemasai Vattikuti**. Feel free to star this repository!
+Developer contributions are welcome. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for details on formatting, branching, and pull request steps.

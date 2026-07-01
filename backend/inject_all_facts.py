@@ -17,7 +17,9 @@ Usage:
     ./venv/bin/python inject_all_facts.py
 """
 
-import os, uuid, httpx
+import os
+import uuid
+import httpx
 from bs4 import BeautifulSoup
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct

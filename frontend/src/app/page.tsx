@@ -457,6 +457,7 @@ export default function Home() {
                         </a>
                       ))}
                     </div>
+                  )}
                   {msg.role === "assistant" && !msg.error && msg.content && (
                     <div style={{ display: "flex", gap: 12, marginTop: 10, opacity: 0.65 }}>
                       <button

@@ -30,7 +30,7 @@ def _is_clean(content: str) -> bool:
         if re.search(pat, lower):
             return False
     # Reject if same phrase repeated (footer duplication)
-    lines = [l.strip() for l in content.split("\n") if l.strip()]
+    lines = [line.strip() for line in content.split("\n") if line.strip()]
     if len(lines) >= 3:
         unique = set(lines)
         if len(unique) / len(lines) < 0.6:  # >40% duplicates = noisy

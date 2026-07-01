@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 import os
-import sys
 import json
 import asyncio
 import glob
 import urllib.parse
-from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, Distance, VectorParams
+from qdrant_client.models import PointStruct
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -91,7 +89,7 @@ async def scrape_profile(page, url):
         if "HOME" in profile_content:
             profile_content = profile_content.split("HOME", 1)[-1].strip()
             
-        cleaned_lines = [l.strip() for l in profile_content.split("\n") if l.strip()]
+        cleaned_lines = [line.strip() for line in profile_content.split("\n") if line.strip()]
         
         # Parse fields from the cleaned text lines
         name = "Unknown"
@@ -261,7 +259,7 @@ async def main():
             faculty_by_school[sch] = []
         faculty_by_school[sch].append(p)
 
-    faculty_md = f"## 👩‍🏫 6. Teaching Faculty & Pedagogy\n\nVIT-AP employs highly qualified faculty members across its schools. Below is the detailed directory of all faculty members gathered from the official website:\n\n"
+    faculty_md = "## 👩‍🏫 6. Teaching Faculty & Pedagogy\n\nVIT-AP employs highly qualified faculty members across its schools. Below is the detailed directory of all faculty members gathered from the official website:\n\n"
     for school_name, members in faculty_by_school.items():
         faculty_md += f"### 📚 {school_name}\n\n"
         for m in members:
@@ -279,14 +277,16 @@ async def main():
             edu_idx = -1
             res_idx = -1
             for idx, line in enumerate(c_lines):
-                if line.lower() == "education": edu_idx = idx
-                if line.lower() == "research": res_idx = idx
+                if line.lower() == "education":
+                    edu_idx = idx
+                if line.lower() == "research":
+                    res_idx = idx
             
             if edu_idx != -1:
-                edu_text = " ".join([l.strip() for l in c_lines[edu_idx+1:edu_idx+8] if l.strip()])
+                edu_text = " ".join([line_val.strip() for line_val in c_lines[edu_idx+1:edu_idx+8] if line_val.strip()])
                 faculty_md += f"*   **Education:** {edu_text[:300]}\n"
             if res_idx != -1:
-                res_text = " ".join([l.strip() for l in c_lines[res_idx+1:res_idx+8] if l.strip()])
+                res_text = " ".join([line_val.strip() for line_val in c_lines[res_idx+1:res_idx+8] if line_val.strip()])
                 faculty_md += f"*   **Research & Specialization:** {res_text[:300]}\n"
             faculty_md += "\n"
 
