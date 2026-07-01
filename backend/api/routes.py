@@ -24,20 +24,54 @@ class FeedbackRequest(BaseModel):
 @router.post("/chat")
 @limiter.limit("20/minute")
 async def chat_endpoint(request: Request, chat_request: ChatRequest):
-    # ── 1. Input Guardrail ──
-    query_lower = chat_request.query.lower()
-    injection_keywords = ["ignore instructions", "ignore previous", "system prompt", "overwrite instructions", "bypass rules", "you are now a"]
+    # ── 1. Input Guardrails ──
+    query_lower = chat_request.query.lower().strip()
+
+    # Prompt injection attempts
+    injection_keywords = [
+        "ignore instructions", "ignore previous", "system prompt",
+        "overwrite instructions", "bypass rules", "you are now a",
+        "forget your instructions", "disregard previous", "act as",
+        "jailbreak", "dan mode", "pretend you are",
+    ]
+
+    # Violent / threatening language
+    violence_keywords = [
+        "kill ", "murder", "shoot", "stab", "bomb", "explode", "suicide",
+        "hang yourself", "die ", "i will hurt", "i want to hurt",
+        "destroy him", "destroy her", "attack", "rape", "assault",
+    ]
+
+    # NSFW / sexual content
+    nsfw_keywords = [
+        "sex ", "porn", "nude", "naked", "masturbat", "orgasm",
+        "sexual intercourse", "penis", "vagina", "boobs", "xxx",
+    ]
+
     if any(k in query_lower for k in injection_keywords):
-         raise HTTPException(
-             status_code=400,
-             detail="Prompt injection warning: Please stick to official campus questions about VIT-AP."
-         )
+        raise HTTPException(
+            status_code=400,
+            detail="⚠️ Prompt injection detected. Please ask questions about VIT-AP University."
+        )
+
+    if any(k in query_lower for k in violence_keywords):
+        raise HTTPException(
+            status_code=400,
+            detail="⚠️ Violent or harmful content is not allowed. Please ask questions about VIT-AP University."
+        )
+
+    if any(k in query_lower for k in nsfw_keywords):
+        raise HTTPException(
+            status_code=400,
+            detail="⚠️ Inappropriate content detected. Please ask questions about VIT-AP University."
+        )
 
     from rag.generator import generate_answer_stream
     return StreamingResponse(
         generate_answer_stream(chat_request.query, chat_request.history),
         media_type="text/event-stream"
     )
+
 
 @router.post("/chat/feedback")
 async def chat_feedback(feedback_req: FeedbackRequest):
