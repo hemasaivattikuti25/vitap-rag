@@ -160,25 +160,49 @@ class QdrantRetriever:
                         "score": 1.0,  # Direct match score
                     })
 
-            # Run vector search
+            # Run vector search - fetch a larger candidate pool for local reranking
             query_vector = self._embed(query)
             response = self.client.query_points(
                 collection_name=self.collection_name,
                 query=query_vector,
-                limit=top_k,
+                limit=20,  # larger candidate pool
             )
             results_raw = response.points if hasattr(response, "points") else response
             
-            vector_results = [
-                {
-                    "content":    hit.payload.get("content", ""),
-                    "source_url": hit.payload.get("source_url", ""),
-                    "title":      hit.payload.get("title", ""),
-                    "score":      hit.score,
-                }
-                for hit in results_raw
-            ]
-
+            # Local keyword-matching / lexical boost re-ranking
+            scored_candidates = []
+            for hit in results_raw:
+                payload = hit.payload
+                title = payload.get("title", "").lower()
+                content = payload.get("content", "").lower()
+                
+                # Basic semantic score from Qdrant
+                score = hit.score
+                
+                # Lexical Term Matching Boost (Reranking)
+                # Boost if exact query words appear in the title or content
+                words = [w for w in query_lower.split() if len(w) > 2]
+                match_count = 0
+                for w in words:
+                    if w in title:
+                        match_count += 2.0  # High boost for title matches
+                    elif w in content:
+                        match_count += 0.5  # Medium boost for content matches
+                
+                # Combine semantic score and lexical term match boost
+                final_score = score + (match_count * 0.1)
+                
+                scored_candidates.append({
+                    "content":    payload.get("content", ""),
+                    "source_url": payload.get("source_url", ""),
+                    "title":      payload.get("title", ""),
+                    "score":      final_score,
+                })
+            
+            # Sort by the final combined score descending
+            scored_candidates.sort(key=lambda x: x["score"], reverse=True)
+            vector_results = scored_candidates[:top_k]
+ 
             # Merge matched profiles and vector results, preserving exact matches first
             combined = []
             seen_urls = set()
@@ -193,8 +217,7 @@ class QdrantRetriever:
                     seen_urls.add(vr["source_url"])
                     
             return combined[:top_k]
-
+ 
         except Exception as e:
             print(f"[retriever] Error during retrieval: {e}")
             return []
-

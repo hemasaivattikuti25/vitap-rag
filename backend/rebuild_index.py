@@ -139,11 +139,29 @@ async def scrape_with_playwright(pages: list) -> list[dict]:
         page = await context.new_page()
 
         for url, category in pages:
-            try:
-                print(f"  Scraping [{category}] {url}")
-                await page.goto(url, wait_until="domcontentloaded", timeout=20000)
-                await page.wait_for_timeout(2000)  # wait for JS
+            success = False
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    print(f"  Scraping [{category}] {url} (Attempt {attempt+1}/{max_retries})")
+                    # Set 15s timeout for speed; wait for DOM contents to load
+                    await page.goto(url, wait_until="domcontentloaded", timeout=15000)
+                    # Use a short wait for dynamic Javascript elements to settle
+                    await page.wait_for_timeout(2000)
+                    success = True
+                    break
+                except Exception as attempt_err:
+                    print(f"    ⚠️ Attempt {attempt+1} failed: {attempt_err}")
+                    if attempt < max_retries - 1:
+                        sleep_time = 2 ** attempt
+                        print(f"    Sleeping {sleep_time}s before retrying...")
+                        await asyncio.sleep(sleep_time)
+            
+            if not success:
+                print(f"    ❌ Skipping {url} — failed after {max_retries} attempts.")
+                continue
 
+            try:
                 # Remove clutter (menus, sidebars, headers, footers, popups, and navigation blocks)
                 await page.evaluate("""
                     ['nav', 'footer', 'header', 'script', 'style', '.cookie-banner',
