@@ -458,6 +458,16 @@ def main():
 
     for label, client in get_clients():
         try:
+            try:
+                client.get_collection(COLLECTION)
+            except Exception:
+                from qdrant_client.models import VectorParams, Distance
+                client.create_collection(
+                    collection_name=COLLECTION,
+                    vectors_config=VectorParams(size=384, distance=Distance.COSINE)
+                )
+                print(f"[inject_all_facts] Created missing collection '{COLLECTION}' in {label} Qdrant")
+
             client.upsert(collection_name=COLLECTION, points=points)
             print(f"[inject_all_facts] ✅ {len(points)} facts → {label} Qdrant")
         except Exception as e:
