@@ -25,3 +25,6 @@ lxml>=5.0.0
 
 # Playwright (JS-rendered page scraping in rebuild_index.py)
 playwright>=1.44.0
+
+# Rate Limiter
+slowapi==0.1.9

@@ -1,28 +1,61 @@
 version: '3.8'
 
 services:
+  # ── 1. Vector Database (Qdrant) ────────────────────────────────────────────
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.10.1
+    container_name: campusos-qdrant
     ports:
       - "6333:6333"
       - "6334:6334"
     volumes:
-      - qdrant_data:/qdrant/storage
+      - qdrant_storage:/qdrant/storage
     restart: unless-stopped
-    
-  # Uncomment below if you want to run Postgres locally instead of Supabase cloud
-  # postgres:
-  #   image: postgres:15
-  #   environment:
-  #     POSTGRES_USER: campusos
-  #     POSTGRES_PASSWORD: password
-  #     POSTGRES_DB: campusos
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - pg_data:/var/lib/postgresql/data
-  #   restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── 2. Python Backend (FastAPI) ────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campusos-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_API_KEY=""
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - ALLOWED_ORIGINS=http://localhost:3000
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - backend_cache:/app/fastembed_cache
+    restart: unless-stopped
+
+  # ── 3. Next.js Frontend ───────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: campusos-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
 
 volumes:
-  qdrant_data:
-  # pg_data:
+  qdrant_storage:
+  backend_cache:

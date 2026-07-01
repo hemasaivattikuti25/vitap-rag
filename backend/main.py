@@ -133,6 +133,9 @@ async def lifespan(app: FastAPI):
 
 
 # ── FastAPI app ─────────────────────────────────────────────────────────────
+from limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 app = FastAPI(
     title="vitap-UniOs API",
@@ -141,6 +144,11 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url=None,
 )
+
+# Register rate limiter on FastAPI instance
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 app.add_middleware(
     CORSMiddleware,

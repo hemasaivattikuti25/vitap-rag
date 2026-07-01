@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional
 import sys
@@ -6,6 +6,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models.schema import Club, Event
+from limiter import limiter
 
 router = APIRouter()
 
@@ -16,10 +17,11 @@ class ChatRequest(BaseModel):
     history: Optional[List[dict]] = None
 
 @router.post("/chat")
-async def chat_endpoint(request: ChatRequest):
+@limiter.limit("20/minute")
+async def chat_endpoint(request: Request, chat_request: ChatRequest):
     from rag.generator import generate_answer_stream
     return StreamingResponse(
-        generate_answer_stream(request.query, request.history),
+        generate_answer_stream(chat_request.query, chat_request.history),
         media_type="text/event-stream"
     )
 
