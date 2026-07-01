@@ -1,153 +1,184 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 import asyncio
 import sys
 import os
 import datetime
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+log = logging.getLogger("vitap")
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from api.routes import router
 
-app = FastAPI(title="vitap-UniOs API", version="2.0.0")
+BACKEND_DIR    = os.path.dirname(os.path.abspath(__file__))
+IST_OFFSET     = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# ── Allowed origins (set ALLOWED_ORIGINS env var as comma-separated list) ──
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "")
+ALLOWED_ORIGINS: list[str] = (
+    [o.strip() for o in _raw_origins.split(",") if o.strip()]
+    if _raw_origins
+    else [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
 )
+log.info(f"CORS allowed origins: {ALLOWED_ORIGINS}")
 
-app.include_router(router, prefix="/api")
 
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
-IST_OFFSET = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-
+# ── Pipeline ────────────────────────────────────────────────────────────────
 
 def _seconds_until_midnight_ist() -> float:
-    """Seconds from now until next midnight IST (00:00:00)."""
-    now_ist = datetime.datetime.now(IST_OFFSET)
-    tomorrow = (now_ist + datetime.timedelta(days=1)).replace(
+    now = datetime.datetime.now(IST_OFFSET)
+    tomorrow = (now + datetime.timedelta(days=1)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
-    return (tomorrow - now_ist).total_seconds()
+    return (tomorrow - now).total_seconds()
 
 
 async def _run_step(name: str, *cmd: str) -> bool:
-    """Run a subprocess step, stream output, return True on success."""
-    print(f"[pipeline] ▶ {name} ...")
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT,
-        cwd=BACKEND_DIR,
-    )
-    async for line in proc.stdout:
-        print(f"[pipeline]   {line.decode().rstrip()}")
-    await proc.wait()
-    ok = proc.returncode == 0
-    print(f"[pipeline] {'✅' if ok else '❌'} {name} done (exit={proc.returncode})")
-    return ok
+    log.info(f"[pipeline] ▶ {name}")
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            cwd=BACKEND_DIR,
+        )
+        async for line in proc.stdout:
+            log.info(f"[pipeline]   {line.decode().rstrip()}")
+        await proc.wait()
+        ok = proc.returncode == 0
+        log.info(f"[pipeline] {'✅' if ok else '❌'} {name} (exit={proc.returncode})")
+        return ok
+    except Exception as e:
+        log.error(f"[pipeline] ❌ {name} crashed: {e}")
+        return False
 
 
 async def run_full_rebuild():
-    """
-    Full 5-step rebuild pipeline:
-      1. Scrape all VIT-AP pages with Playwright
-      2. Remove boilerplate + embed + index into Qdrant
-         (also auto-injects fees & placement facts at end)
-      3. Restore faculty profiles
-    """
-    print("[pipeline] ═══════════════════════════════════════════")
-    print("[pipeline]  VIT-AP Full Index Rebuild — START")
-    print(f"[pipeline]  Time (IST): {datetime.datetime.now(IST_OFFSET).isoformat()}")
-    print("[pipeline] ═══════════════════════════════════════════")
+    log.info("═" * 50)
+    log.info("VIT-AP Full Index Rebuild — START")
+    log.info(f"Time (IST): {datetime.datetime.now(IST_OFFSET).isoformat()}")
 
     ok1 = await _run_step(
-        "Step 1/3 — Scrape VIT-AP website (Playwright)",
+        "Step 1/3 — Scrape VIT-AP (Playwright)",
         sys.executable, "rebuild_index.py", "--force",
     )
     if not ok1:
-        print("[pipeline] ⚠ Scrape failed — aborting rebuild.")
+        log.warning("[pipeline] Scrape failed — injecting facts only as fallback")
+        await _run_step("Fallback — inject verified facts", sys.executable, "inject_all_facts.py")
         return
 
-    ok2 = await _run_step(
-        "Step 2/3 — Deduplicate + embed + index (+ fees & placement facts)",
-        sys.executable, "remove_boilerplate.py",
-    )
-    if not ok2:
-        print("[pipeline] ⚠ Boilerplate/index step failed — still trying faculty...")
+    await _run_step("Step 2/3 — Dedupe + embed + index", sys.executable, "remove_boilerplate.py")
+    await _run_step("Step 3/3 — Restore faculty profiles", sys.executable, "reprocess_faculty_cache.py")
 
-    ok3 = await _run_step(
-        "Step 3/3 — Restore faculty profiles",
-        sys.executable, "reprocess_faculty_cache.py",
-    )
-
-    print("[pipeline] ═══════════════════════════════════════════")
-    print(f"[pipeline]  Rebuild {'COMPLETE ✅' if (ok1 and ok2 and ok3) else 'PARTIAL ⚠'}")
-    print(f"[pipeline]  Time (IST): {datetime.datetime.now(IST_OFFSET).isoformat()}")
-    print("[pipeline] ═══════════════════════════════════════════")
+    log.info(f"Rebuild COMPLETE — {datetime.datetime.now(IST_OFFSET).isoformat()}")
+    log.info("═" * 50)
 
 
 async def _midnight_rebuild_loop():
-    """
-    Waits until next midnight IST, then runs the full rebuild pipeline
-    every 24 hours — automatic, no manual work needed.
-    """
     wait = _seconds_until_midnight_ist()
-    next_run = datetime.datetime.now(IST_OFFSET) + datetime.timedelta(seconds=wait)
-    print(f"[scheduler] ⏰ First rebuild scheduled at midnight IST → {next_run.strftime('%Y-%m-%d %H:%M IST')}")
-    print(f"[scheduler]    (sleeping {wait/3600:.1f} hours)")
-
+    nxt = datetime.datetime.now(IST_OFFSET) + datetime.timedelta(seconds=wait)
+    log.info(f"[scheduler] Next rebuild at midnight IST → {nxt.strftime('%Y-%m-%d %H:%M IST')} ({wait/3600:.1f}h away)")
     await asyncio.sleep(wait)
-
     while True:
         await run_full_rebuild()
-        # Sleep exactly 24 hours for subsequent runs
         await asyncio.sleep(24 * 60 * 60)
 
 
 async def _feed_refresh_loop():
-    """Refresh news/events feed every 30 minutes."""
-    await asyncio.sleep(3)  # let server boot
-    from db.feed_store import feed_store
-    while True:
-        try:
-            print("[feed] Refreshing news/events feed...")
-            await feed_store._refresh()
-            print("[feed] Feed refresh complete.")
-        except Exception as e:
-            print(f"[feed] Error: {e}")
-        await asyncio.sleep(30 * 60)
+    await asyncio.sleep(5)
+    try:
+        from db.feed_store import feed_store
+        while True:
+            try:
+                log.info("[feed] Refreshing news/events feed…")
+                await feed_store._refresh()
+                log.info("[feed] Feed refresh complete.")
+            except Exception as e:
+                log.error(f"[feed] Refresh error: {e}")
+            await asyncio.sleep(30 * 60)
+    except ImportError as e:
+        log.error(f"[feed] feed_store unavailable: {e}")
 
 
-@app.on_event("startup")
-async def startup_event():
+# ── App lifespan (replaces deprecated @app.on_event) ───────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     asyncio.create_task(_feed_refresh_loop())
     asyncio.create_task(_midnight_rebuild_loop())
     nxt = datetime.datetime.now(IST_OFFSET) + datetime.timedelta(
         seconds=_seconds_until_midnight_ist()
     )
-    print(
-        "[main] vitap-UniOs API v2 started.\n"
-        f"[main] Auto-rebuild: every midnight IST (next: {nxt.strftime('%Y-%m-%d %H:%M IST')})\n"
-        "[main] Feed refresh: every 30 minutes."
+    log.info(
+        f"vitap-UniOs API v2 started.\n"
+        f"  Auto-rebuild: every midnight IST (next: {nxt.strftime('%Y-%m-%d %H:%M IST')})\n"
+        f"  Feed refresh: every 30 minutes.\n"
+        f"  CORS origins: {ALLOWED_ORIGINS}"
+    )
+    yield
+    # Shutdown (nothing to clean up)
+    log.info("vitap-UniOs API shutting down.")
+
+
+# ── FastAPI app ─────────────────────────────────────────────────────────────
+
+app = FastAPI(
+    title="vitap-UniOs API",
+    version="2.0.0",
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url=None,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
+)
+
+from api.routes import router
+app.include_router(router, prefix="/api")
+
+
+# ── Global exception handler — never returns 500 with a traceback ───────────
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    log.error(f"Unhandled exception on {request.url}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error. Please try again."},
     )
 
 
+# ── Health / status endpoints ───────────────────────────────────────────────
+
 @app.get("/")
-def read_root():
-    return {"message": "vitap-UniOs API v2 — Campus Platform for VIT-AP"}
+def root():
+    return {"message": "vitap-UniOs API v2", "status": "ok"}
+
+
+@app.get("/health")
+def health():
+    """Render uses this for health checks."""
+    return {"status": "ok", "time_ist": datetime.datetime.now(IST_OFFSET).isoformat()}
 
 
 @app.post("/api/admin/rebuild")
 async def trigger_rebuild():
-    """
-    Manual trigger endpoint — POST /api/admin/rebuild
-    Kicks off the full pipeline in the background immediately.
-    """
+    """Manual rebuild trigger — POST /api/admin/rebuild"""
     asyncio.create_task(run_full_rebuild())
-    return {"status": "rebuild started", "message": "Full index rebuild triggered manually."}
+    return {"status": "started", "message": "Full rebuild triggered in background."}

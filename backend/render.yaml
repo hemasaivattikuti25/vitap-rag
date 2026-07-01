@@ -4,8 +4,15 @@ services:
     env: python
     plan: free
     region: oregon
-    buildCommand: pip install -r requirements.txt && python download_model.py
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    # Build: install deps, download model, install Playwright browsers
+    buildCommand: >
+      pip install -r requirements.txt &&
+      python download_model.py &&
+      python -m playwright install chromium --with-deps
+    # Start: 1 worker (free tier), bind to Render's dynamic PORT
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info
+    # Render health check — must respond 200 within 30s
+    healthCheckPath: /health
     envVars:
       - key: GROQ_API_KEY
         sync: false
@@ -13,9 +20,12 @@ services:
         sync: false
       - key: QDRANT_API_KEY
         sync: false
-      - key: SUPABASE_URL
-        value: mock
-      - key: SUPABASE_KEY
-        value: mock
+      # Set this to your deployed frontend URL to restrict CORS
+      # e.g. "https://your-app.vercel.app,https://your-app.netlify.app"
+      - key: ALLOWED_ORIGINS
+        sync: false
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: "3.11.4"
+      # Prevents Playwright from looking for X11 display
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /opt/render/.cache/ms-playwright

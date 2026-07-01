@@ -1,0 +1,128 @@
+name: CI/CD — Build, Test & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── 1. Lint & syntax check ─────────────────────────────────────────────────
+  lint:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install linter
+        run: pip install ruff
+      - name: Run ruff
+        run: ruff check backend/ --ignore E501,E402
+
+  # ── 2. Install & smoke-test ────────────────────────────────────────────────
+  test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: lint
+    env:
+      QDRANT_URL: ${{ secrets.QDRANT_URL }}
+      QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      ALLOWED_ORIGINS: "http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Import check — main app boots without error
+        working-directory: backend
+        run: |
+          python -c "
+          import os, sys
+          os.environ.setdefault('QDRANT_URL', 'local')
+          os.environ.setdefault('QDRANT_API_KEY', '')
+          os.environ.setdefault('GROQ_API_KEY', 'test')
+          os.environ.setdefault('ALLOWED_ORIGINS', 'http://localhost:3000')
+          sys.path.insert(0, '.')
+          # Just verify the app object can be created without crashing
+          from main import app
+          print('✅ App imported successfully')
+          print('Routes:', [r.path for r in app.routes])
+          "
+
+      - name: Health endpoint returns 200
+        working-directory: backend
+        run: |
+          pip install httpx
+          python -c "
+          import subprocess, time, httpx, sys
+
+          proc = subprocess.Popen(
+              [sys.executable, '-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8765'],
+              env={**__import__('os').environ,
+                   'QDRANT_URL': 'local',
+                   'GROQ_API_KEY': 'test',
+                   'ALLOWED_ORIGINS': 'http://localhost:3000'},
+          )
+          time.sleep(6)
+          try:
+              r = httpx.get('http://127.0.0.1:8765/health', timeout=10)
+              assert r.status_code == 200, f'Health check failed: {r.status_code}'
+              assert r.json()['status'] == 'ok'
+              print('✅ /health returned 200 OK')
+          finally:
+              proc.terminate()
+          "
+
+  # ── 3. Deploy to Render ────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: test
+    # Only deploy on push to main (not on PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "⚠️  RENDER_DEPLOY_HOOK_URL secret not set — skipping deploy trigger"
+            exit 0
+          fi
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+          echo "Render deploy hook response: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ]; then
+            echo "❌ Render deploy hook failed (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
+          echo "✅ Render deploy triggered successfully"
+
+      - name: Wait & verify deployment health
+        run: |
+          if [ -z "${{ secrets.RENDER_APP_URL }}" ]; then
+            echo "⚠️  RENDER_APP_URL secret not set — skipping health verification"
+            exit 0
+          fi
+          echo "Waiting 90s for Render to deploy..."
+          sleep 90
+          for i in 1 2 3 4 5; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              "${{ secrets.RENDER_APP_URL }}/health" --max-time 15)
+            echo "Attempt $i — /health returned: $HTTP_STATUS"
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Deployment verified healthy!"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "❌ Deployment health check failed after retries"
+          exit 1
