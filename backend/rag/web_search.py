@@ -127,16 +127,15 @@ def decode_yahoo_url(url: str) -> str:
     return url
 
 
-async def yahoo_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
+async def yahoo_search(query: str, max_results: int = 4, is_general: bool = False) -> List[Dict[str, str]]:
     """Search Yahoo Search and return list of parsed results."""
     keyword_query = clean_search_query(query)
     search_query = keyword_query
-    
-    if not check_is_general(query) and "vit" not in keyword_query.lower():
+
+    # Only append VIT AP context for campus-specific queries
+    if not is_general and "vit" not in keyword_query.lower():
         search_query = f"{keyword_query} VIT AP"
-        
-    print(f"[yahoo_search] Searching: '{search_query}' (original: '{query}')")
-    
+
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -198,7 +197,7 @@ async def yahoo_search(query: str, max_results: int = 4) -> List[Dict[str, str]]
     return results
 
 
-async def ddg_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
+async def ddg_search(query: str, max_results: int = 4, is_general: bool = False) -> List[Dict[str, str]]:
     """
     Async search DuckDuckGo HTML and return a list of result dicts.
     Tight 1.5s timeout.
@@ -206,8 +205,8 @@ async def ddg_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
     keyword_query = clean_search_query(query)
     search_query = keyword_query
 
-    # Append "VIT AP" context for campus-specific queries
-    if not check_is_general(query) and "vit" not in keyword_query.lower():
+    # Only append VIT AP context for campus-specific queries
+    if not is_general and "vit" not in keyword_query.lower():
         search_query = f"{keyword_query} VIT AP"
 
     print(f"[ddg_search] Searching: '{search_query}' (original: '{query}')")
@@ -236,18 +235,22 @@ async def ddg_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
     return []
 
 
-async def web_search(query: str, max_results: int = 4) -> List[Dict[str, str]]:
+async def web_search(query: str, max_results: int = 4, is_general: bool = False) -> List[Dict[str, str]]:
     """
     Search DuckDuckGo and Yahoo Search in parallel to minimize latency.
+    Pass is_general=True for non-campus queries so 'VIT AP' is NOT appended.
     """
     import asyncio
     try:
-        tasks = [ddg_search(query, max_results), yahoo_search(query, max_results)]
+        tasks = [
+            ddg_search(query, max_results, is_general=is_general),
+            yahoo_search(query, max_results, is_general=is_general),
+        ]
         results_list = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         ddg_res = results_list[0] if not isinstance(results_list[0], Exception) else []
         yahoo_res = results_list[1] if not isinstance(results_list[1], Exception) else []
-        
+
         if ddg_res:
             return ddg_res
         return yahoo_res

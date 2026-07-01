@@ -256,57 +256,55 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
     context_section = ""
 
     if not is_identity:
-        if is_general:
-            context_section = "Use your general knowledge to answer directly."
+        if is_identity:
+            context_section = identity_context
         else:
-            # Run local retrieval and real-time live web search in parallel
-            print(f"[generator] Running local Qdrant retrieval and live web search in parallel for: '{query[:50]}'")
+            # ── Always run web search for real-time answers ──
+            # For general queries (cricket, jobs, etc): search as-is (no VIT-AP appended)
+            # For campus queries: search with VIT-AP context appended
+            print(f"[generator] Running local retrieval + web search in parallel for: '{query[:50]}'")
             local_task = asyncio.to_thread(retriever.retrieve, query, 5)
-            web_task = web_search(query)
-            
+            web_task = web_search(query, is_general=is_general)
+
             local_docs, web_docs = await asyncio.gather(local_task, web_task)
-            
+
             # Pre-filter local docs for base score and structural false positives
             user_wants_opinions = any(w in q_lower for w in ["reddit", "opinion", "review", "sentiment", "student say", "think about"])
             candidates = []
-            for d in local_docs:
-                if d["score"] < 0.26:
-                    continue
-                # Exclude cross-domain false positive semantic matches (e.g. sports pages matching placements)
-                if is_false_positive(query, d.get("content", ""), d.get("title", "")):
-                    print(f"[generator] Excluding false positive local chunk '{d['title']}' for query '{query[:30]}'")
-                    continue
-                is_opinion_source = d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", "").lower()
-                # Exclude student opinions/Reddit comments for general factual queries
-                if is_opinion_source and not user_wants_opinions:
-                    print(f"[generator] Excluding local opinion chunk '{d['title']}' to ensure factual accuracy.")
-                    continue
-                candidates.append(d)
 
-            # Check relevance of candidates using fast LLM filter
+            if not is_general:  # only use local Qdrant for campus-specific queries
+                for d in local_docs:
+                    if d["score"] < 0.26:
+                        continue
+                    if is_false_positive(query, d.get("content", ""), d.get("title", "")):
+                        print(f"[generator] Excluding false positive local chunk '{d['title']}' for query '{query[:30]}'")
+                        continue
+                    is_opinion_source = d.get("category") == "student_opinion" or "reddit.com" in d.get("source_url", "").lower()
+                    if is_opinion_source and not user_wants_opinions:
+                        print(f"[generator] Excluding local opinion chunk '{d['title']}' to ensure factual accuracy.")
+                        continue
+                    candidates.append(d)
+
             relevant_local = []
             if candidates:
-                # Bypass the LLM relevance check if we have high-confidence matches (score >= 0.45) to minimize latency
                 high_conf = [c for c in candidates if c.get("score", 0.0) >= 0.45]
                 if high_conf:
-                    print(f"[generator] Found {len(high_conf)} high-confidence candidates (score >= 0.45). Bypassing LLM relevance filter to save latency.")
+                    print(f"[generator] {len(high_conf)} high-confidence candidates. Bypassing LLM relevance filter.")
                     relevant_local = candidates
                 else:
                     print(f"[generator] Running LLM relevance filter on {len(candidates)} candidates...")
                     relevant_local = await check_relevance(query, candidates)
-                    print(f"[generator] LLM relevance filter kept {len(relevant_local)} of {len(candidates)} candidates.")
+                    print(f"[generator] LLM relevance filter kept {len(relevant_local)}/{len(candidates)}.")
             else:
-                print("[generator] No candidate documents to filter.")
-            
+                print("[generator] No local candidates to filter.")
+
             context_parts = []
-            
-            # 1. Add Web Search results (highly prioritized for real-time accurate information)
+
             if web_docs:
                 web_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in web_docs)
-                context_parts.append(f"Web Search Results:\n{web_text}")
+                context_parts.append(f"Web Search Results (real-time):\n{web_text}")
                 citations.extend(d["source_url"] for d in web_docs)
-                
-            # 2. Add verified relevant local Qdrant documents
+
             if relevant_local:
                 official_info = []
                 student_opinions = []
@@ -315,7 +313,7 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
                         student_opinions.append(d)
                     else:
                         official_info.append(d)
-                        
+
                 if official_info:
                     off_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in official_info)
                     context_parts.append(f"Official Campus Documents:\n{off_text}")
@@ -323,17 +321,16 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
                     op_text = "\n\n".join(f"Source: {d['source_url']}\nContent: {d['content']}" for d in student_opinions)
                     context_parts.append(f"Student Opinions & Reviews:\n{op_text}")
                     has_opinions = True
-                    
+
                 citations.extend(d["source_url"] for d in relevant_local if d.get("source_url"))
-                
-            # Remove duplicate citations
+
             citations = list(set(citations))
-            
+
             if context_parts:
                 context_section = "\n\n".join(context_parts)
             else:
-                print("[generator] Both Web Search and Local Qdrant returned 0 relevant results. Falling back to general knowledge.")
-                context_section = "Use your general knowledge about VIT-AP to answer. Be helpful, clean, and polite."
+                print("[generator] No web or local results. Falling back to general knowledge note.")
+                context_section = "You could not find any real-time information. Tell the user honestly that you couldn't find up-to-date info and suggest they check a news site or search engine."
                 is_general = True
 
     # Build dynamic prompt messages
@@ -347,11 +344,13 @@ async def generate_answer_stream(query: str, history: Optional[List[dict]] = Non
         )
     elif is_general:
         system_instruction = (
-            "You are vitap-UniOs, a friendly chatbot for VIT-AP University. Respond politely to greetings, feedback, or critique. "
-            "If the user criticizes you or says 'you do not know anything' after you just successfully answered a question, "
-            "apologize politely for the confusion, and ask how you can help them with other questions. "
-            "Do not suggest searching for the same information you already provided. "
-            "Do NOT use the VIT-AP facts/sentiments formatting. Just answer directly and naturally. Do NOT mention VIT-AP unless asked."
+            "You are vitap-UniOs, a helpful AI assistant. "
+            "You have been provided real-time web search results in the context. "
+            "Answer questions using the web search results provided — do NOT say 'my training data is from 2023' or similar. "
+            "For general knowledge topics (sports, news, people, jobs, etc), answer directly using the search results. "
+            "If the user is just greeting or giving feedback, respond politely and naturally. "
+            "Do NOT mention VIT-AP unless the question is about it. "
+            "Never claim you cannot do web searches — you have web results in your context."
         )
     else:
         if has_opinions:
